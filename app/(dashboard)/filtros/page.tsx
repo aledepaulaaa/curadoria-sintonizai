@@ -7,13 +7,14 @@ import {
 } from '@/src/actions/filtros/filtrosActions';
 import { 
   Plus, Trash2, Save, RefreshCw, 
-  Settings2, Info, CheckCircle2, Loader2, Edit3, GripVertical
+  Settings2, Info, CheckCircle2, Loader2, Edit3, GripVertical, X
 } from 'lucide-react';
 
 export default function FiltrosPage() {
   const [filtros, setFiltros] = React.useState<any[]>([]);
   const [carregando, setCarregando] = React.useState(true);
   const [salvando, setSalvando] = React.useState<string | null>(null);
+  const [editados, setEditados] = React.useState<Set<string>>(new Set());
 
   const carregar = React.useCallback(async () => {
     setCarregando(true);
@@ -39,6 +40,7 @@ export default function FiltrosPage() {
     setFiltros(prev => prev.map(g => 
       g.id === grupoId ? { ...g, itens: [...g.itens, nome] } : g
     ));
+    setEditados(prev => new Set(prev).add(grupoId));
   };
 
   const handleRemoveItem = (grupoId: string, index: number) => {
@@ -50,6 +52,7 @@ export default function FiltrosPage() {
       }
       return g;
     }));
+    setEditados(prev => new Set(prev).add(grupoId));
   };
 
   const handleRenameGroup = (grupoId: string) => {
@@ -90,6 +93,11 @@ export default function FiltrosPage() {
     try {
       const { id, ...data } = grupo;
       await salvarFiltros(id, data);
+      setEditados(prev => {
+        const novo = new Set(prev);
+        novo.delete(grupo.id);
+        return novo;
+      });
       alert(`Grupo "${grupo.label}" salvo com sucesso!`);
     } finally {
       setSalvando(null);
@@ -160,27 +168,32 @@ export default function FiltrosPage() {
                </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 mb-8 min-h-[100px] content-start">
-               {grupo.itens?.map((item: string, idx: number) => (
-                 <div key={idx} className="group flex items-center gap-2 px-4 py-2 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 rounded-xl">
-                    <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300">{item}</span>
-                    <button 
-                      onClick={() => handleRemoveItem(grupo.id, idx)}
-                      className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-600 transition-opacity"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                 </div>
-               ))}
-            </div>
+             <div className="flex flex-wrap gap-2 mb-8 min-h-[100px] content-start">
+                {grupo.itens?.map((item: string, idx: number) => (
+                  <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-xl hover:border-red-200 dark:hover:border-red-500/30 transition-colors">
+                     <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300">{item}</span>
+                     <button 
+                       onClick={() => handleRemoveItem(grupo.id, idx)}
+                       className="text-zinc-400 hover:text-red-500 transition-colors"
+                       title="Remover"
+                     >
+                       <X size={14} />
+                     </button>
+                  </div>
+                ))}
+             </div>
 
             <button 
               onClick={() => handleSalvar(grupo)}
               disabled={salvando === grupo.id}
-              className="w-full py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+              className={`w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 ${
+                editados.has(grupo.id) 
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/40 animate-pulse' 
+                : 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
+              }`}
             >
               {salvando === grupo.id ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              Salvar Alterações
+              {editados.has(grupo.id) ? 'Confirmar e Salvar' : 'Salvar Alterações'}
             </button>
           </div>
         ))}
