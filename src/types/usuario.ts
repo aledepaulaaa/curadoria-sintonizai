@@ -11,6 +11,8 @@ export interface Usuario {
     enderecoCompleto?: string;
   };
   criadoEm?: string;
+  dataNascimento?: string;
+  fotoPerfil?: string;
   preferencias?: string[];
   favoritos?: string[];
 }

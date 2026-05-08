@@ -1,5 +1,19 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [1.7] — 2026-05-08 — Notificações e Atribuição Comunitária
+### ✨ Funcionalidades
+- **Notificações Real-time**: Implementado sino de notificações no Header que monitora em tempo real a coleção `indicacoes`.
+- **Community Management**: Novo `IndicationsModal` que permite visualizar sugestões de usuários e arquivá-las ou usá-las para criar eventos oficiais.
+- **Atribuição de Usuários**: Criado o componente `UserSelector` com busca no Firestore para vincular créditos de indicação aos usuários da base.
+- **IA Proativa**: System Instruction do Gemini endurecida para validar obrigatoriamente o campo `estilo` e solicitar confirmação antes de salvar.
+
+### 🛠️ Melhorias Técnicas
+- **useNotificationStore**: Implementado store global com Zustand e listener `onSnapshot` do Firestore.
+- **Data Integrity**: Sincronização da interface `Evento` com o campo `indicadoPor`.
+- **UI/UX**: Adicionado feedback visual de "unread" no sino de notificações.
+
+---
+
 ## [1.6] — 2026-05-08 — IA Ativa e Padronização de Dados
 ### ✨ Funcionalidades
 - **IA Agente (Active Agent):** O chat com Gemini agora utiliza *Function Calling* para invocar a ferramenta `salvar_evento_no_firestore`. A IA pode cadastrar eventos em lote de forma autônoma e segura.

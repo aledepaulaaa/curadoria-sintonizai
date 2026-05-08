@@ -14,8 +14,8 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Dashboard</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-28 rounded-2xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 animate-pulse" />
           ))}
         </div>
@@ -54,7 +54,7 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {kpis.map((kpi, i) => (
               <KpiCard key={i} {...kpi} delay={i * 0.1} />
             ))}

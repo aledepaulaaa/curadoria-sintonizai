@@ -32,13 +32,35 @@ export async function buscarInsights(): Promise<ActionResponse<{
 
     const totalShares = sharesSnap.docs.reduce((acc, d) => acc + (d.data().total || 0), 0);
     
+    // Média de Idade (precisamos disso antes dos KPIs)
+    let somaIdades = 0;
+    let totalComIdade = 0;
+    const hoje = new Date();
+    usersSnap.docs.forEach(doc => {
+      const d = doc.data();
+      if (d.dataNascimento) {
+        const nasc = new Date(d.dataNascimento);
+        let idade = hoje.getFullYear() - nasc.getFullYear();
+        const m = hoje.getMonth() - nasc.getMonth();
+        if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) {
+          idade--;
+        }
+        if (idade > 0 && idade < 120) {
+          somaIdades += idade;
+          totalComIdade++;
+        }
+      }
+    });
+    const mediaIdade = totalComIdade > 0 ? Math.round(somaIdades / totalComIdade) : 0;
+
     if (eventos.length === 0) {
       return createSuccessResponse({
         kpis: [
           { label: 'Total Eventos', valor: 0, icone: 'Ticket' },
           { label: 'Eventos Ativos', valor: 0, icone: 'TrendingUp' },
           { label: 'Usuários', valor: usersSnap.size, icone: 'Users' },
-          { label: 'Compartilhamentos', valor: totalShares, icone: 'Share2' },
+          { label: 'Shares', valor: totalShares, icone: 'Share2' },
+          { label: 'Idade Média', valor: mediaIdade, icone: 'Calendar' },
         ],
         categorias: [],
         gratuitos: [],
@@ -54,7 +76,8 @@ export async function buscarInsights(): Promise<ActionResponse<{
       { label: 'Total Eventos', valor: eventos.length, icone: 'Ticket' },
       { label: 'Eventos Ativos', valor: ativos.length, icone: 'TrendingUp' },
       { label: 'Usuários', valor: usersSnap.size, icone: 'Users' },
-      { label: 'Compartilhamentos', valor: totalShares, icone: 'Share2' },
+      { label: 'Shares', valor: totalShares, icone: 'Share2' },
+      { label: 'Idade Média', valor: mediaIdade, icone: 'Calendar' },
     ];
 
     // Distribuição por categoria

@@ -97,22 +97,46 @@ export default function UserDetailModal({ user, isOpen, onClose, onUpdate }: Use
                />
             </div>
           </div>
+          <div>
+            <label className={labelCls}>Data de Nascimento</label>
+            <div className="relative">
+               <Calendar className="absolute left-4 top-3.5 text-zinc-400" size={18} />
+               <input 
+                type="date"
+                value={form.dataNascimento || ''} 
+                onChange={(e) => setForm({...form, dataNascimento: e.target.value})} 
+                className={`${inputCls} pl-12`} 
+               />
+            </div>
+          </div>
         </div>
 
         <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 space-y-3">
            <div className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest">
               <MapPin size={14} />
-              <span>Localização</span>
+              <span>Localização & Endereço</span>
            </div>
-           <p className="text-sm text-zinc-600 dark:text-zinc-300 font-medium">
-              {user.localizacao?.enderecoCompleto || 'Endereço não cadastrado'}
-           </p>
-           {user.criadoEm && (
-              <div className="flex items-center gap-2 text-xs text-zinc-500">
-                 <Calendar size={12} />
-                 <span>Membro desde: {new Date(user.criadoEm).toLocaleDateString('pt-BR')}</span>
+           <div className="space-y-1">
+              <p className="text-sm text-zinc-900 dark:text-white font-bold">
+                 {user.localizacao?.enderecoCompleto || 'Endereço não cadastrado'}
+              </p>
+              {user.localizacao?.cidade && (
+                <p className="text-xs text-zinc-500">{user.localizacao.cidade}</p>
+              )}
+           </div>
+
+           <div className="pt-2 border-t border-zinc-100 dark:border-zinc-700/50 grid grid-cols-2 gap-4">
+              {user.criadoEm && (
+                <div className="flex items-center gap-2 text-[10px] font-medium text-zinc-500">
+                   <Calendar size={12} />
+                   <span>Cadastro: {new Date(user.criadoEm).toLocaleDateString('pt-BR')}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2 text-[10px] font-medium text-zinc-500">
+                 <User size={12} />
+                 <span>UID: {user.id.substring(0, 12)}...</span>
               </div>
-           )}
+           </div>
         </div>
 
         <button 

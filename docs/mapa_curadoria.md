@@ -14,9 +14,10 @@ Painel CMS web para curadoria de eventos do Sintonizaí. Atua como fonte de verd
          │ CRUD & Function Calling
          ▼
 ┌───────────────────┐
-│   Firestore       │ ← coleção "eventos" (713+ itens)
+│   Firestore       │ ← coleção "eventos" (762+ itens)
 │   (sintonizai-    │ ← coleção "banners_destaque"
-│    app-prod)      │ ← coleção "usuarios" (preferências)
+│    app-prod)      │ ← coleção "usuarios" (perfis e créditos)
+│                   │ ← coleção "indicacoes" (sugestões comunidade)
 └────────┬──────────┘
          │ onSnapshot (real-time)
          ▼
@@ -40,6 +41,7 @@ Painel CMS web para curadoria de eventos do Sintonizaí. Atua como fonte de verd
 - `src/components/` — Componentes UI por domínio (layout, dashboard, curadoria)
 - `src/components/common/` — Componentes globais (`EmptyState`, `ErrorBoundary`, `Modal`, `ConfirmModal`, `ImageUpload`)
 - `src/components/eventos/` — Componentes específicos de eventos (`EventDetailModal`)
+- `src/components/curadoria/` — Componentes de fluxo (`IndicationsModal`, `UserSelector`)
 
 ## Segurança
 
@@ -55,7 +57,9 @@ Painel CMS web para curadoria de eventos do Sintonizaí. Atua como fonte de verd
 - **Deep Linking**: Configuração universal (`assetlinks.json`) para abertura direta de eventos compartilhados nos domínios `.com.br` e `.app.br`.
 
 ## Inteligência e Automação
-- **IA Curadoria Ativa**: O Chat com Gemini foi convertido em um **Agente Funcional**. Através de *Function Calling*, a IA pode persistir eventos diretamente no Firestore usando o Firebase Admin SDK, garantindo padronização de dados (campo `estilo`) e produtividade em escala.
+- **IA Curadoria Ativa**: O Chat com Gemini foi convertido em um **Agente Funcional**. Através de *Function Calling*, a IA pode persistir eventos diretamente no Firestore usando o Firebase Admin SDK, garantindo padronização de dados (campo `estilo`) e produtividade em escala. Agora com validação rigorosa de campos obrigatórios e confirmação ativa.
+- **Curadoria Comunitária**: Sistema de notificações em tempo real no Header que monitora a coleção `indicacoes`. Permite converter sugestões de usuários em eventos oficiais com um clique, mantendo a rastreabilidade.
+- **Atribuição de Créditos**: Componente `UserSelector` permite vincular um evento a um usuário da base, garantindo que o app mobile exiba "Indicado por [Nome]" para fomentar o engajamento.
 
 ## Evoluções Futuras
 

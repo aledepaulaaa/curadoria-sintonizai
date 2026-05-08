@@ -12,19 +12,18 @@ import {
 import { useUIStore } from '@/src/store/uiStore';
 import { useNotificationStore } from '@/src/store/useNotificationStore';
 import { Bell } from 'lucide-react';
-import IndicationsModal from '../curadoria/IndicationsModal';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
+  onOpenNotifications: () => void;
 }
 
-export default function Header({ onToggleSidebar }: HeaderProps) {
+export default function Header({ onToggleSidebar, onOpenNotifications }: HeaderProps) {
   const { user, logout } = useAuth();
   const { mode, toggleMode } = useThemeContext();
   const { sidebarColapsada, toggleSidebarColapsada } = useUIStore();
   const { naoLidas, iniciarListener } = useNotificationStore();
   const [menuAberto, setMenuAberto] = React.useState(false);
-  const [modalIndicacoesAberto, setModalIndicacoesAberto] = React.useState(false);
 
   React.useEffect(() => {
     const unsubscribe = iniciarListener();
@@ -59,7 +58,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Notificações */}
         <button
-          onClick={() => setModalIndicacoesAberto(true)}
+          onClick={onOpenNotifications}
           className="relative p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           title="Indicações de Usuários"
         >
@@ -80,10 +79,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           {mode === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
-        <IndicationsModal 
-          isOpen={modalIndicacoesAberto} 
-          onClose={() => setModalIndicacoesAberto(false)} 
-        />
+
 
         <div className="relative">
           <button

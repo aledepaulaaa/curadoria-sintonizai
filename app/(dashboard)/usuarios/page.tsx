@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { listarUsuarios } from '@/src/actions/usuarios/usuariosActions';
+import { excluirUsuario, listarUsuarios } from '@/src/actions/usuarios/usuariosActions';
 import type { Usuario } from '@/src/types/usuario';
-import { Edit2, Search, UserCheck, X } from 'lucide-react';
+import { Edit2, Search, UserCheck, X, Trash2, Eye, Calendar } from 'lucide-react';
 import UserDetailModal from '@/src/components/usuarios/UserDetailModal';
 
 export default function UsuariosPage() {
@@ -32,6 +32,29 @@ export default function UsuariosPage() {
   React.useEffect(() => {
     carregar();
   }, [carregar]);
+
+  const handleExcluir = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este usuário? Esta ação é irreversível.')) {
+      try {
+        await excluirUsuario(id);
+        carregar();
+      } catch (error) {
+        alert('Erro ao excluir usuário');
+      }
+    }
+  };
+
+  const calcularIdade = (dataNasc?: string) => {
+    if (!dataNasc) return '—';
+    const nasc = new Date(dataNasc);
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - nasc.getFullYear();
+    const m = hoje.getMonth() - nasc.getMonth();
+    if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) {
+      idade--;
+    }
+    return idade;
+  };
 
   const filtrados = React.useMemo(() => {
     let result = [...usuarios];
@@ -122,11 +145,12 @@ export default function UsuariosPage() {
                 <th className="px-4 py-3 font-semibold cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('nome')}>
                   <div className="flex items-center gap-2">Usuário {renderSortIcon('nome')}</div>
                 </th>
+                <th className="px-4 py-3 font-semibold">Idade</th>
                 <th className="px-4 py-3 font-semibold hidden md:table-cell cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('vibe')}>
                   <div className="flex items-center gap-2">Vibe {renderSortIcon('vibe')}</div>
                 </th>
                 <th className="px-4 py-3 font-semibold hidden lg:table-cell">Telefone</th>
-                <th className="text-center px-4 py-3 font-semibold">Ações</th>
+                <th className="text-right px-4 py-3 font-semibold">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-zinc-600 dark:text-zinc-400">
@@ -143,6 +167,12 @@ export default function UsuariosPage() {
                        </div>
                     </div>
                   </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-1.5 text-zinc-900 dark:text-white font-bold">
+                      <Calendar size={14} className="text-purple-500" />
+                      {calcularIdade(u.dataNascimento)}
+                    </div>
+                  </td>
                   <td className="px-4 py-4 hidden md:table-cell">
                     <button 
                       onClick={() => setBusca(u.vibe || '')}
@@ -152,13 +182,23 @@ export default function UsuariosPage() {
                     </button>
                   </td>
                   <td className="px-4 py-4 hidden lg:table-cell text-xs font-medium">{u.telefone || '—'}</td>
-                  <td className="px-4 py-4 text-center">
-                    <button 
-                      onClick={() => setUsuarioSelecionado(u)}
-                      className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 text-blue-500 transition-colors"
-                    >
-                      <Edit2 size={16} />
-                    </button>
+                  <td className="px-4 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => setUsuarioSelecionado(u)}
+                        className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 text-purple-500 transition-colors"
+                        title="Visualizar Detalhes"
+                      >
+                        <Eye size={18} />
+                      </button>
+                      <button 
+                        onClick={() => handleExcluir(u.id)}
+                        className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"
+                        title="Excluir Usuário"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

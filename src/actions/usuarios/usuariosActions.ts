@@ -20,3 +20,7 @@ export async function atualizarUsuario(id: string, dados: Partial<Usuario>): Pro
   const { id: _, ...rest } = dados as Usuario;
   await adminDb.collection(COLLECTION).doc(id).update(rest);
 }
+
+export async function excluirUsuario(id: string): Promise<void> {
+  await adminDb.collection(COLLECTION).doc(id).delete();
+}

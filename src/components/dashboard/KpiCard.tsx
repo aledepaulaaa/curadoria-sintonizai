@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Ticket, TrendingUp, Users, Bell, Share2, type LucideIcon } from 'lucide-react';
+import { Ticket, TrendingUp, Users, Bell, Share2, Calendar, type LucideIcon } from 'lucide-react';
 
 interface KpiCardProps {
   label: string;
@@ -15,6 +15,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Users: Users,
   Bell: Bell,
   Share2: Share2,
+  Calendar: Calendar,
 };
 
 export default function KpiCard({ label, valor, icone, delay = 0 }: KpiCardProps) {

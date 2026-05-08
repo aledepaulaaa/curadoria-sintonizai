@@ -25,24 +25,30 @@ export default function UserSelector({ onSelect, selectedUid }: UserSelectorProp
   const [selecionado, setSelecionado] = React.useState<UserShort | null>(null);
 
   const buscarUsuarios = async (val: string) => {
-    if (val.length < 3) {
-      setUsuarios([]);
-      return;
-    }
-
     setLoading(true);
     try {
-      const q = query(
-        collection(db, 'usuarios'),
-        where('nome', '>=', val),
-        where('nome', '<=', val + '\uf8ff'),
-        limit(5)
-      );
+      let q;
+      if (val.length >= 1) {
+        // Busca por nome
+        q = query(
+          collection(db, 'usuarios'),
+          where('nome', '>=', val),
+          where('nome', '<=', val + '\uf8ff'),
+          limit(5)
+        );
+      } else {
+        // Lista inicial (recentes ou primeiros)
+        q = query(
+          collection(db, 'usuarios'),
+          limit(5)
+        );
+      }
+      
       const snap = await getDocs(q);
       const list = snap.docs.map(doc => ({
         uid: doc.id,
-        nome: doc.data().nome,
-        email: doc.data().email,
+        nome: doc.data().nome || 'Sem Nome',
+        email: doc.data().email || '',
         foto: doc.data().fotoPerfil || doc.data().foto
       })) as UserShort[];
       setUsuarios(list);
@@ -52,6 +58,13 @@ export default function UserSelector({ onSelect, selectedUid }: UserSelectorProp
       setLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    // Carrega iniciais se aberto e busca vazia
+    if (aberto && !busca) {
+      buscarUsuarios('');
+    }
+  }, [aberto]);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -93,7 +106,7 @@ export default function UserSelector({ onSelect, selectedUid }: UserSelectorProp
         )}
       </div>
 
-      {aberto && (busca.length >= 3 || loading) && !selecionado && (
+      {aberto && !selecionado && (
         <div className="absolute z-50 w-full mt-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl overflow-hidden">
           {loading ? (
             <div className="p-4 text-center text-sm text-zinc-500">Buscando...</div>
