@@ -119,13 +119,13 @@ export default function ManualCuradoria() {
                 <div>
                    <label className={labelCls}>Categoria</label>
                    <select value={form.categoria} onChange={e => handleChange('categoria', e.target.value)} className={inputCls}>
-                      {filtros.categorias.map((c: string) => <option key={c} value={c}>{c}</option>)}
+                      {(filtros.categorias || []).map((c: string) => <option key={c} value={c}>{c}</option>)}
                    </select>
                 </div>
                 <div>
                    <label className={labelCls}>Vibe</label>
                    <select value={form.vibe} onChange={e => handleChange('vibe', e.target.value)} className={inputCls}>
-                      {filtros.vibes.map((v: string) => <option key={v} value={v}>{v}</option>)}
+                      {(filtros.vibes || []).map((v: string) => <option key={v} value={v}>{v}</option>)}
                    </select>
                 </div>
              </div>

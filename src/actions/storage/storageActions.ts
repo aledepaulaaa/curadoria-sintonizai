@@ -22,20 +22,20 @@ export async function listarPastaStorage(prefix: string = ''): Promise<StorageIt
   // Arquivos
   for (const file of files) {
     if (file.name === prefix || file.name.endsWith('/')) continue;
-    const [meta] = await file.getMetadata();
     
-    // Gera URL assinada válida por 1 hora para visualização segura no painel
-    const [url] = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 60 * 60 * 1000, // 1 hora
-    });
+    // Tenta tornar público para ter acesso garantido
+    try { await file.makePublic(); } catch (e) {}
+
+    // Formato de URL do Firebase Storage (mais compatível com Apps Mobile)
+    const encodedPath = encodeURIComponent(file.name);
+    const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media`;
 
     items.push({
       nome: file.name.split('/').pop() || file.name,
       caminho: file.name,
       url: url,
       tipo: 'arquivo',
-      tamanho: Number(meta.size) || 0,
+      tamanho: Number((await file.getMetadata())[0].size) || 0,
     });
   }
 
@@ -59,17 +59,21 @@ export async function uploadArquivoStorage(base64: string, nome: string, prefix:
   const caminho = prefix ? `${prefix}${nome}` : nome;
   const file = bucket.file(caminho);
 
+  // Detecta content-type básico pela extensão
+  const ext = nome.split('.').pop()?.toLowerCase();
+  const contentType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+
   await file.save(buffer, {
-    metadata: {
-      contentType: 'image/webp', // Defaulting to webp for better compression
-    }
+    metadata: { contentType }
   });
 
-  // Retorna a URL assinada para visualização imediata
-  const [url] = await file.getSignedUrl({
-    action: 'read',
-    expires: Date.now() + 60 * 60 * 1000,
-  });
+  try {
+    await file.makePublic();
+  } catch (e) {
+    console.error('[Storage] Erro ao tornar público:', e);
+  }
 
-  return url;
+  // URL padrão Firebase (alt=media) - Funciona para arquivos públicos ou com token
+  const encodedPath = encodeURIComponent(caminho);
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media`;
 }

@@ -1,50 +1,61 @@
 'use client';
 
 import React from 'react';
-import { listarEventos, criarEvento, atualizarEvento, deletarEvento, criarEventosBatch, deletarEventosBatch } from '@/src/actions/eventos/eventosActions';
+import { 
+  listarEventos, 
+  criarEvento, 
+  atualizarEvento, 
+  deletarEvento, 
+  criarEventosBatch, 
+  deletarEventosBatch 
+} from '@/src/actions/eventos/eventosActions';
+import { useEventStore } from '@/src/store/eventStore';
 import type { Evento } from '@/src/types/evento';
 
 export function useEventos() {
-  const [eventos, setEventos] = React.useState<Evento[]>([]);
-  const [carregando, setCarregando] = React.useState(false);
+  const { 
+    eventos, 
+    carregando, 
+    carregarEventos, 
+    adicionarEvento, 
+    atualizarEventoLocal, 
+    removerEventoLocal,
+    removerEventosBatchLocal
+  } = useEventStore();
 
-  const carregar = React.useCallback(async () => {
-    setCarregando(true);
-    try {
-      const lista = await listarEventos();
-      setEventos(lista);
-    } finally {
-      setCarregando(false);
-    }
-  }, []);
+  const carregar = React.useCallback(async (force = false) => {
+    await carregarEventos(force);
+  }, [carregarEventos]);
 
   const criar = React.useCallback(async (evento: Omit<Evento, 'id'>) => {
-    await criarEvento(evento);
-    await carregar();
-  }, [carregar]);
+    const id = await criarEvento(evento);
+    adicionarEvento({ ...evento, id } as Evento);
+  }, [adicionarEvento]);
 
   const criarBatch = React.useCallback(async (lista: Omit<Evento, 'id'>[]) => {
     const count = await criarEventosBatch(lista);
-    await carregar();
+    await carregar(true); // Batch é complexo demais para atualizar localmente um por um com IDs corretos de uma vez sem retorno da lista
     return count;
   }, [carregar]);
 
   const atualizar = React.useCallback(async (id: string, dados: Partial<Evento>) => {
     await atualizarEvento(id, dados);
-    await carregar();
-  }, [carregar]);
+    atualizarEventoLocal(id, dados);
+  }, [atualizarEventoLocal]);
 
   const deletar = React.useCallback(async (id: string) => {
     await deletarEvento(id);
-    setEventos((prev) => prev.filter((e) => e.id !== id));
-  }, []);
+    removerEventoLocal(id);
+  }, [removerEventoLocal]);
 
   const deletarBatch = React.useCallback(async (ids: string[]) => {
     await deletarEventosBatch(ids);
-    setEventos((prev) => prev.filter((e) => !ids.includes(e.id || '')));
-  }, []);
+    removerEventosBatchLocal(ids);
+  }, [removerEventosBatchLocal]);
 
-  React.useEffect(() => { carregar(); }, [carregar]);
+  React.useEffect(() => { 
+    carregar(); 
+  }, [carregar]);
 
   return { eventos, carregando, carregar, criar, criarBatch, atualizar, deletar, deletarBatch };
 }

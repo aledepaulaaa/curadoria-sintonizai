@@ -1,7 +1,6 @@
 import React from 'react';
-import { storage } from '@/src/services/firebaseClient';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
+import { uploadArquivoStorage } from '@/src/actions/storage/storageActions';
 
 interface ImageUploadProps {
   value: string;
@@ -26,16 +25,23 @@ export default function ImageUpload({ value, onChange, folder = 'eventos' }: Ima
     setErro(null);
 
     try {
+      // Converte para base64 para enviar via Server Action
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      const base64 = await base64Promise;
       const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-      const storageRef = ref(storage, `${folder}/${fileName}`);
-      
-      const snapshot = await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(snapshot.ref);
-      
+
+      // Usa a Server Action que tem permissão de Admin e torna público
+      const url = await uploadArquivoStorage(base64, fileName, `${folder}/`);
+
       onChange(url);
     } catch (err) {
       console.error('Erro no upload:', err);
-      setErro('Falha ao enviar imagem.');
+      setErro('Falha ao enviar imagem (Erro de permissão).');
     } finally {
       setCarregando(false);
     }
@@ -44,7 +50,7 @@ export default function ImageUpload({ value, onChange, folder = 'eventos' }: Ima
   return (
     <div className="space-y-2">
       <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-400">Imagem do Evento</label>
-      
+
       <div className="relative group">
         {value ? (
           <div className="relative aspect-video rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
@@ -81,7 +87,7 @@ export default function ImageUpload({ value, onChange, folder = 'eventos' }: Ima
           </label>
         )}
       </div>
-      
+
       {erro && <p className="text-xs text-red-500 font-medium">{erro}</p>}
     </div>
   );

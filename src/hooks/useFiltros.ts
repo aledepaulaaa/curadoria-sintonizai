@@ -17,8 +17,14 @@ export function useFiltros() {
     const carregar = async () => {
       try {
         const data = await listarFiltros();
-        if (Object.keys(data).length > 0) {
-          setFiltros(data);
+        if (Array.isArray(data) && data.length > 0) {
+          const novosFiltros: any = {};
+          data.forEach((f: any) => {
+            if (f.id && f.itens) {
+              novosFiltros[f.id] = f.itens;
+            }
+          });
+          setFiltros((prev: any) => ({ ...prev, ...novosFiltros }));
         }
       } catch (e) {
         console.error('Erro ao carregar filtros dinâmicos:', e);

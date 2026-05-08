@@ -11,7 +11,7 @@ import EventDetailModal from '@/src/components/eventos/EventDetailModal';
 import { exportToJson, exportToCsv } from '@/src/utils/exportUtils';
 
 export default function EventosPage() {
-  const { eventos, carregando, deletar, deletarBatch } = useEventos();
+  const { eventos, carregando, carregar, deletar, deletarBatch } = useEventos();
   const [busca, setBusca] = React.useState('');
   const [pagina, setPagina] = React.useState(0);
   const [itensPorPagina, setItensPorPagina] = React.useState(250);
@@ -92,7 +92,17 @@ export default function EventosPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Eventos ({filtrados.length})</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Eventos ({filtrados.length})</h1>
+          <button 
+            onClick={() => carregar(true)} 
+            disabled={carregando}
+            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 transition-all disabled:opacity-50"
+            title="Recarregar do servidor"
+          >
+            <Download size={18} className={carregando ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">

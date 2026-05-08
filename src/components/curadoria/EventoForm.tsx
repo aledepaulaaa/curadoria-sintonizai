@@ -100,13 +100,13 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
           <div>
             <label className={labelCls}>Categoria</label>
             <select value={form.categoria} onChange={(e) => handleChange('categoria', e.target.value)} className={inputCls}>
-              {filtros.categorias.map((t: string) => <option key={t} value={t}>{t}</option>)}
+              {(filtros.categorias || []).map((t: string) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
           <div>
             <label className={labelCls}>Vibe</label>
             <select value={form.vibe} onChange={(e) => handleChange('vibe', e.target.value)} className={inputCls}>
-              {filtros.vibes.map((v: string) => <option key={v} value={v}>{v}</option>)}
+              {(filtros.vibes || []).map((v: string) => <option key={v} value={v}>{v}</option>)}
             </select>
           </div>
         </div>
@@ -137,8 +137,8 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
           <select value={form.estilo} onChange={(e) => handleChange('estilo', e.target.value)} className={inputCls}>
             <option value="">Selecione...</option>
             {form.categoria === 'Teatro' 
-              ? filtros.teatro.map((r: string) => <option key={r} value={r}>{r}</option>)
-              : filtros.ritmos.map((r: string) => <option key={r} value={r}>{r}</option>)
+              ? (filtros.teatro || []).map((r: string) => <option key={r} value={r}>{r}</option>)
+              : (filtros.ritmos || []).map((r: string) => <option key={r} value={r}>{r}</option>)
             }
           </select>
         </div>
