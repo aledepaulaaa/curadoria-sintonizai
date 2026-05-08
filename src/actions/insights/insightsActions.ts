@@ -1,0 +1,81 @@
+'use server';
+
+import { adminDb } from '@/src/services/firebaseAdmin';
+import { KpiData, ChartData } from '@/src/types/common';
+import { handleActionError, createSuccessResponse, type ActionResponse } from '@/src/utils/errorHandlers';
+
+export async function buscarInsights(): Promise<ActionResponse<{
+  kpis: KpiData[];
+  categorias: ChartData[];
+  gratuitos: ChartData[];
+  topShared: { id: string, nome: string, total: number }[];
+}>> {
+  try {
+    const [eventosSnap, usersSnap, sharesSnap] = await Promise.all([
+      adminDb.collection('eventos').get(),
+      adminDb.collection('usuarios').get(),
+      adminDb.collection('metricas_compartilhamento').orderBy('total', 'desc').limit(10).get()
+    ]);
+
+    const eventos = eventosSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    
+    // Processar Top Shared
+    const topShared = sharesSnap.docs.map(doc => {
+      const data = doc.data();
+      const evento = eventos.find(e => e.id === data.eventoId);
+      return {
+        id: data.eventoId,
+        nome: evento ? (evento as any).nome : 'Evento Removido',
+        total: data.total || 0
+      };
+    });
+
+    const totalShares = sharesSnap.docs.reduce((acc, d) => acc + (d.data().total || 0), 0);
+    
+    if (eventos.length === 0) {
+      return createSuccessResponse({
+        kpis: [
+          { label: 'Total Eventos', valor: 0, icone: 'Ticket' },
+          { label: 'Eventos Ativos', valor: 0, icone: 'TrendingUp' },
+          { label: 'Usuários', valor: usersSnap.size, icone: 'Users' },
+          { label: 'Compartilhamentos', valor: totalShares, icone: 'Share2' },
+        ],
+        categorias: [],
+        gratuitos: [],
+        topShared: []
+      });
+    }
+
+    const agora = new Date().toISOString().split('T')[0];
+    const ativos = (eventos as any[]).filter((e) => (e.dataInicio || '').split('T')[0] >= agora);
+
+    // KPIs
+    const kpis: KpiData[] = [
+      { label: 'Total Eventos', valor: eventos.length, icone: 'Ticket' },
+      { label: 'Eventos Ativos', valor: ativos.length, icone: 'TrendingUp' },
+      { label: 'Usuários', valor: usersSnap.size, icone: 'Users' },
+      { label: 'Compartilhamentos', valor: totalShares, icone: 'Share2' },
+    ];
+
+    // Distribuição por categoria
+    const catMap: Record<string, number> = {};
+    eventos.forEach((e: any) => {
+      const cat = e.tipo_evento || e.categoria || 'Outros';
+      catMap[cat] = (catMap[cat] || 0) + 1;
+    });
+    const categorias: ChartData[] = Object.entries(catMap)
+      .map(([nome, valor]) => ({ nome, valor }))
+      .sort((a, b) => b.valor - a.valor);
+
+    // Gratuitos vs Pagos
+    const gratis = eventos.filter((e: any) => e.gratuito === true).length;
+    const gratuitos: ChartData[] = [
+      { nome: 'Gratuito', valor: gratis, cor: '#4CAF50' },
+      { nome: 'Pago', valor: eventos.length - gratis, cor: '#FF9800' },
+    ];
+
+    return createSuccessResponse({ kpis, categorias, gratuitos, topShared });
+  } catch (error) {
+    return handleActionError(error, 'buscarInsights');
+  }
+}
