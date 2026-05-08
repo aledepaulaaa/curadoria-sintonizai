@@ -19,6 +19,7 @@ export default function EventosPage() {
   const [confirmarExcluirLote, setConfirmarExcluirLote] = React.useState(false);
   const [eventoSelecionado, setEventoSelecionado] = React.useState<Evento | null>(null);
   const [selecionados, setSelecionados] = React.useState<Set<string>>(new Set());
+  const [filtroQualidade, setFiltroQualidade] = React.useState<'todos' | 'imagem' | 'texto' | 'caracteres'>('todos');
 
   const [ordem, setOrdem] = React.useState<{ col: string; desc: boolean }>({ col: 'dataInicio', desc: false });
 
@@ -32,6 +33,24 @@ export default function EventosPage() {
   const filtrados = React.useMemo(() => {
     let result = [...eventos];
     
+    // Filtro de Qualidade
+    if (filtroQualidade === 'imagem') {
+      result = result.filter(e => 
+        !e.imagemUrl || 
+        (!e.imagemUrl.includes('firebasestorage.googleapis.com') && !e.imagemUrl.includes('storage.googleapis.com'))
+      );
+    } else if (filtroQualidade === 'texto') {
+      result = result.filter(e => 
+        !e.nome || e.nome.length < 5 || 
+        !e.descricao || e.descricao.length < 20
+      );
+    } else if (filtroQualidade === 'caracteres') {
+      const regexInvalido = /[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/;
+      result = result.filter(e => 
+        regexInvalido.test(e.nome) || regexInvalido.test(e.descricao || '')
+      );
+    }
+
     // Filtro Global
     if (busca.trim()) {
       const q = busca.toLowerCase();
@@ -58,7 +77,27 @@ export default function EventosPage() {
     });
 
     return result;
-  }, [eventos, busca, ordem]);
+  }, [eventos, busca, ordem, filtroQualidade]);
+
+  // Métricas de Qualidade
+  const metricas = React.useMemo(() => {
+    const comErroImagem = eventos.filter(e => 
+      !e.imagemUrl || 
+      (!e.imagemUrl.includes('firebasestorage.googleapis.com') && !e.imagemUrl.includes('storage.googleapis.com'))
+    ).length;
+
+    const comErroTexto = eventos.filter(e => 
+      !e.nome || e.nome.length < 5 || 
+      !e.descricao || e.descricao.length < 20
+    ).length;
+
+    const regexInvalido = /[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/;
+    const comErroCaracteres = eventos.filter(e => 
+      regexInvalido.test(e.nome) || regexInvalido.test(e.descricao || '')
+    ).length;
+
+    return { total: eventos.length, comErroImagem, comErroTexto, comErroCaracteres };
+  }, [eventos]);
 
   const paginados = filtrados.slice(pagina * itensPorPagina, (pagina + 1) * itensPorPagina);
   const totalPaginas = Math.ceil(filtrados.length / itensPorPagina);
@@ -93,7 +132,7 @@ export default function EventosPage() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Eventos ({filtrados.length})</h1>
+          <h1 className="text-2xl font-bold">Eventos</h1>
           <button 
             onClick={() => carregar(true)} 
             disabled={carregando}
@@ -103,6 +142,50 @@ export default function EventosPage() {
             <Download size={18} className={carregando ? 'animate-spin' : ''} />
           </button>
         </div>
+      </div>
+
+      {/* Indicadores de Qualidade */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button 
+          onClick={() => setFiltroQualidade('todos')}
+          className={`p-4 rounded-2xl border transition-all text-left ${filtroQualidade === 'todos' ? 'bg-purple-500 border-purple-500 text-white shadow-lg shadow-purple-500/20' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-purple-500'}`}
+        >
+          <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'todos' ? 'text-purple-200' : 'text-zinc-400'}`}>Total de Eventos</p>
+          <p className="text-2xl font-bold">{metricas.total}</p>
+        </button>
+
+        <button 
+          onClick={() => setFiltroQualidade('imagem')}
+          className={`p-4 rounded-2xl border transition-all text-left ${filtroQualidade === 'imagem' ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-red-500'}`}
+        >
+          <div className="flex items-center justify-between">
+            <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'imagem' ? 'text-red-200' : 'text-zinc-400'}`}>Ajuste de Imagem</p>
+            {metricas.comErroImagem > 0 && <span className="flex h-2 w-2 rounded-full bg-red-400 animate-pulse" />}
+          </div>
+          <p className="text-2xl font-bold">{metricas.comErroImagem}</p>
+        </button>
+
+        <button 
+          onClick={() => setFiltroQualidade('texto')}
+          className={`p-4 rounded-2xl border transition-all text-left ${filtroQualidade === 'texto' ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-amber-500'}`}
+        >
+          <div className="flex items-center justify-between">
+            <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'texto' ? 'text-amber-200' : 'text-zinc-400'}`}>Ajuste de Conteúdo</p>
+            {metricas.comErroTexto > 0 && <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />}
+          </div>
+          <p className="text-2xl font-bold">{metricas.comErroTexto}</p>
+        </button>
+
+        <button 
+          onClick={() => setFiltroQualidade('caracteres')}
+          className={`p-4 rounded-2xl border transition-all text-left ${filtroQualidade === 'caracteres' ? 'bg-zinc-600 border-zinc-600 text-white shadow-lg shadow-zinc-500/20' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-zinc-500'}`}
+        >
+          <div className="flex items-center justify-between">
+            <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'caracteres' ? 'text-zinc-200' : 'text-zinc-400'}`}>Caracteres Inválidos</p>
+            {metricas.comErroCaracteres > 0 && <span className="flex h-2 w-2 rounded-full bg-zinc-400 animate-pulse" />}
+          </div>
+          <p className="text-2xl font-bold">{metricas.comErroCaracteres}</p>
+        </button>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
@@ -191,6 +274,7 @@ export default function EventosPage() {
                 <th className="text-left px-4 py-3 font-semibold cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('data')}>
                   <div className="flex items-center gap-2">Data {renderSortIcon('data')}</div>
                 </th>
+                <th className="text-left px-4 py-3 font-semibold">Status</th>
                 <th className="text-center px-4 py-3 font-semibold">Ações</th>
               </tr>
             </thead>
@@ -217,6 +301,22 @@ export default function EventosPage() {
                     ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">{formatarData(e.dataInicio)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1">
+                      {(!e.imagemUrl || (!e.imagemUrl.includes('firebasestorage.googleapis.com') && !e.imagemUrl.includes('storage.googleapis.com'))) && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-red-500/10 text-red-500 text-[10px] font-black uppercase border border-red-500/20" title="Imagem externa ou ausente">Imagem</span>
+                      )}
+                      {(!e.nome || e.nome.length < 5 || !e.descricao || e.descricao.length < 20) && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-500 text-[10px] font-black uppercase border border-amber-500/20" title="Conteúdo incompleto">Texto</span>
+                      )}
+                      {(/[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/.test(e.nome) || /[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/.test(e.descricao || '')) && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-zinc-500/10 text-zinc-500 text-[10px] font-black uppercase border border-zinc-500/20" title="Caracteres especiais/inválidos">Caracteres</span>
+                      )}
+                      {(e.imagemUrl && (e.imagemUrl.includes('firebasestorage.googleapis.com') || e.imagemUrl.includes('storage.googleapis.com')) && e.nome && e.nome.length >= 5 && e.descricao && e.descricao.length >= 20 && !/[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/.test(e.nome) && !/[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/.test(e.descricao || '')) && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase border border-emerald-500/20">OK</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
