@@ -1,5 +1,16 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [1.6] — 2026-05-08 — IA Ativa e Padronização de Dados
+### ✨ Funcionalidades
+- **IA Agente (Active Agent):** O chat com Gemini agora utiliza *Function Calling* para invocar a ferramenta `salvar_evento_no_firestore`. A IA pode cadastrar eventos em lote de forma autônoma e segura.
+- **Padronização Cultural:** Campo `estilo` adicionado ao schema de eventos, permitindo que a IA classifique cada sugestão (ex: MPB, Samba, Sertanejo) para alimentar o motor de recomendação do App.
+
+### 🛠️ Melhorias Técnicas
+- **Firebase Admin Integration:** Configuração robusta para que a IA execute operações privilegiadas no servidor.
+- **System Instructions:** Refinamento dos comandos da IA para garantir que todos os campos obrigatórios (incluindo o novo `estilo`) sejam preenchidos em cada sugestão.
+
+---
+
 ## [1.5] — 2026-05-08 — Curação Pro e Estabilização de Ecossistema
 ### ✨ Funcionalidades
 - **Tabelas Inteligentes (CMS):** Implementada ordenação por coluna e filtros avançados em tempo real para eventos e usuários.

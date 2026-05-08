@@ -9,20 +9,20 @@ Painel CMS web para curadoria de eventos do Sintonizaí. Atua como fonte de verd
 ```
 ┌───────────────────┐
 │   Painel CMS      │ ← Server Actions (Firebase Admin)
-│   (Next.js 16)    │
+│   (Next.js 16)    │ ↔ Agente IA (Gemini 1.5 Flash)
 └────────┬──────────┘
-         │ CRUD direto
+         │ CRUD & Function Calling
          ▼
 ┌───────────────────┐
-│   Firestore       │ ← coleção "eventos"
+│   Firestore       │ ← coleção "eventos" (713+ itens)
 │   (sintonizai-    │ ← coleção "banners_destaque"
-│    app-prod)      │ ← coleção "usuarios" (read-only)
+│    app-prod)      │ ← coleção "usuarios" (preferências)
 └────────┬──────────┘
          │ onSnapshot (real-time)
          ▼
 ┌───────────────────┐
 │   App Mobile      │ ← React Native / Expo
-│   (app-eventos)   │
+│   (app-eventos)   │ ← UI Netflix Style
 └───────────────────┘
 ```
 
@@ -54,9 +54,11 @@ Painel CMS web para curadoria de eventos do Sintonizaí. Atua como fonte de verd
 - **Métricas de Engajamento**: Dashboards em tempo real com "Top 10 Eventos Mais Compartilhados" e agregador de viralidade.
 - **Deep Linking**: Configuração universal (`assetlinks.json`) para abertura direta de eventos compartilhados nos domínios `.com.br` e `.app.br`.
 
+## Inteligência e Automação
+- **IA Curadoria Ativa**: O Chat com Gemini foi convertido em um **Agente Funcional**. Através de *Function Calling*, a IA pode persistir eventos diretamente no Firestore usando o Firebase Admin SDK, garantindo padronização de dados (campo `estilo`) e produtividade em escala.
+
 ## Evoluções Futuras
 
-1. Automação completa de curadoria via IA (Gemini) processando arquivos em lote.
-2. Sistema de "Rollback" para eventos deletados acidentalmente.
-3. Notificações push automáticas ao publicar eventos de alta relevância (Segmentação por interesse).
-4. Exportação avançada de relatórios (PDF/Excel) para produtores de eventos.
+1. Sistema de "Rollback" para eventos deletados acidentalmente.
+2. Notificações push automáticas ao publicar eventos de alta relevância (Segmentação por interesse).
+3. Exportação avançada de relatórios (PDF/Excel) para produtores de eventos.
