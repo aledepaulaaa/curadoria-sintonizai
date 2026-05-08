@@ -32,6 +32,11 @@ export interface Evento {
   tags?: string[];
   nota?: number;
   shares?: number;
+  indicadoPor?: {
+    nome: string;
+    uid: string;
+    foto?: string;
+  };
 }
 
 export interface EventoRaw {

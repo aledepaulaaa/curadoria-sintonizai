@@ -11,6 +11,8 @@ import { useEventos } from '@/src/hooks/useEventos';
 import { useFiltros } from '@/src/hooks/useFiltros';
 import ImageUpload from '../common/ImageUpload';
 import GallerySelector from './GallerySelector';
+import UserSelector from './UserSelector';
+import { UserCheck } from 'lucide-react';
 
 export default function ManualCuradoria() {
   const { criar } = useEventos();
@@ -31,6 +33,7 @@ export default function ManualCuradoria() {
     preco: '',
     linkIngresso: '',
     imagemUrl: '',
+    indicadoPor: null as any,
   });
 
   const handleChange = (field: string, value: any) => {
@@ -66,6 +69,7 @@ export default function ManualCuradoria() {
         preco: '',
         linkIngresso: '',
         imagemUrl: '',
+        indicadoPor: null,
       });
     } catch (err) {
       alert('Erro ao salvar: ' + err);
@@ -148,6 +152,19 @@ export default function ManualCuradoria() {
              <div>
                 <label className={labelCls}>Descrição</label>
                 <textarea value={form.descricao} onChange={e => handleChange('descricao', e.target.value)} rows={4} className={inputCls} placeholder="Conte mais sobre o evento..." />
+             </div>
+
+             <div className="p-4 bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-2xl">
+                <UserSelector 
+                  selectedUid={form.indicadoPor?.uid}
+                  onSelect={(user) => handleChange('indicadoPor', user)} 
+                />
+                {form.indicadoPor && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400 font-bold uppercase tracking-widest">
+                    <UserCheck size={14} />
+                    Vínculo ativo com {form.indicadoPor.nome}
+                  </div>
+                )}
              </div>
 
              <div className="flex justify-end gap-3 pt-4">

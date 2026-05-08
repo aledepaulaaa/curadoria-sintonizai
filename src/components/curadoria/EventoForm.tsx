@@ -4,8 +4,9 @@ import React from 'react';
 import type { Evento } from '@/src/types/evento';
 import ImageUpload from '../common/ImageUpload';
 import { useFiltros } from '@/src/hooks/useFiltros';
-import { Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon, UserCheck } from 'lucide-react';
 import GallerySelector from './GallerySelector';
+import UserSelector from './UserSelector';
 import { AnimatePresence } from 'framer-motion';
 
 interface EventoFormProps {
@@ -29,11 +30,12 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
     preco: inicial?.preco || '',
     linkIngresso: inicial?.linkIngresso || '',
     imagemUrl: inicial?.imagemUrl || '',
+    indicadoPor: inicial?.indicadoPor || null as any,
   });
   const [salvando, setSalvando] = React.useState(false);
   const [abrirGaleria, setAbrirGaleria] = React.useState(false);
 
-  const handleChange = (field: string, value: string | boolean) => {
+  const handleChange = (field: string, value: string | boolean | any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -60,11 +62,12 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
         preco: form.preco,
         linkIngresso: form.linkIngresso,
         imagemUrl: form.imagemUrl,
-        fonte: 'curadoria_manual',
+        indicadoPor: form.indicadoPor || undefined,
+        fonte: form.indicadoPor ? 'indicacao_usuario' : 'curadoria_manual',
       });
       if (!inicial) {
         setForm({ nome: '', descricao: '', dataInicio: '', horario: '', localNome: '', endereco: '',
-          categoria: 'Show', estilo: 'Samba', vibe: 'Cultural', gratuito: false, preco: '', linkIngresso: '', imagemUrl: '' });
+          categoria: 'Show', estilo: 'Samba', vibe: 'Cultural', gratuito: false, preco: '', linkIngresso: '', imagemUrl: '', indicadoPor: null });
       }
     } finally {
       setSalvando(false);
@@ -146,6 +149,19 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
           <label className={labelCls}>Link do Ingresso</label>
           <input value={form.linkIngresso} onChange={(e) => handleChange('linkIngresso', e.target.value)} className={inputCls} placeholder="https://sympla.com.br/..." />
         </div>
+      </div>
+
+      <div className="p-4 bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-2xl">
+        <UserSelector 
+          selectedUid={form.indicadoPor?.uid}
+          onSelect={(user) => handleChange('indicadoPor', user?.nome)} 
+        />
+        {form.indicadoPor && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400 font-bold uppercase tracking-widest">
+            <UserCheck size={14} />
+            Vínculo ativo com {form.indicadoPor.nome}
+          </div>
+        )}
       </div>
 
       <div>
