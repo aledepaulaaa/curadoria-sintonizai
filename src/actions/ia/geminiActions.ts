@@ -36,7 +36,7 @@ export async function chatComGemini(mensagens: { role: 'user' | 'model', parts: 
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
       model: 'gemini-3-flash-preview',
       systemInstruction: SYSTEM_INSTRUCTION
     });
