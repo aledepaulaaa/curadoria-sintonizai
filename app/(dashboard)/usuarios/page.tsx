@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { listarUsuarios } from '@/src/actions/usuarios/usuariosActions';
 import type { Usuario } from '@/src/types/usuario';
-import { Edit2, Search, UserCheck } from 'lucide-react';
+import { Edit2, Search, UserCheck, X } from 'lucide-react';
 import UserDetailModal from '@/src/components/usuarios/UserDetailModal';
 
 export default function UsuariosPage() {
@@ -14,6 +14,15 @@ export default function UsuariosPage() {
   const [pagina, setPagina] = React.useState(0);
   const [itensPorPagina, setItensPorPagina] = React.useState(250);
   const [usuarioSelecionado, setUsuarioSelecionado] = React.useState<Usuario | null>(null);
+
+  const [ordem, setOrdem] = React.useState<{ col: string; desc: boolean }>({ col: 'nome', desc: false });
+
+  const handleToggleOrdem = (col: string) => {
+    setOrdem(prev => ({
+      col,
+      desc: prev.col === col ? !prev.desc : true
+    }));
+  };
 
   const carregar = React.useCallback(() => {
     setCarregando(true);
@@ -25,18 +34,44 @@ export default function UsuariosPage() {
   }, [carregar]);
 
   const filtrados = React.useMemo(() => {
-    const q = busca.toLowerCase();
-    return usuarios.filter(u => 
-      (u.nome || '').toLowerCase().includes(q) || 
-      (u.email || '').toLowerCase().includes(q)
-    );
-  }, [usuarios, busca]);
+    let result = [...usuarios];
+    
+    // Filtro Global
+    if (busca.trim()) {
+      const q = busca.toLowerCase();
+      result = result.filter(u => 
+        (u.nome || '').toLowerCase().includes(q) || 
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.vibe || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Ordenação
+    result.sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      if (ordem.col === 'nome') { valA = a.nome || ''; valB = b.nome || ''; }
+      else if (ordem.col === 'vibe') { valA = a.vibe || ''; valB = b.vibe || ''; }
+
+      if (valA < valB) return ordem.desc ? 1 : -1;
+      if (valA > valB) return ordem.desc ? -1 : 1;
+      return 0;
+    });
+
+    return result;
+  }, [usuarios, busca, ordem]);
 
   const paginados = React.useMemo(() => {
     return filtrados.slice(pagina * itensPorPagina, (pagina + 1) * itensPorPagina);
   }, [filtrados, pagina, itensPorPagina]);
 
   const totalPaginas = Math.ceil(filtrados.length / itensPorPagina);
+
+  const renderSortIcon = (col: string) => {
+    if (ordem.col !== col) return <Search size={14} className="opacity-20 rotate-180" />; // Usando Search como placeholder icone se necessário
+    return ordem.desc ? <Search size={14} className="text-purple-500" /> : <Search size={14} className="text-purple-500 rotate-180" />;
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -51,8 +86,16 @@ export default function UsuariosPage() {
             value={busca} 
             onChange={(e) => { setBusca(e.target.value); setPagina(0); }}
             placeholder="Buscar por nome ou e-mail..."
-            className="w-full pl-12 pr-4 py-3 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
+            className="w-full pl-12 pr-12 py-3 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
           />
+          {busca && (
+            <button 
+              onClick={() => setBusca('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-full text-zinc-400"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
@@ -76,8 +119,12 @@ export default function UsuariosPage() {
           <table className="w-full text-sm text-left">
             <thead className="bg-zinc-50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
               <tr>
-                <th className="px-4 py-3 font-semibold">Usuário</th>
-                <th className="px-4 py-3 font-semibold hidden md:table-cell">Vibe</th>
+                <th className="px-4 py-3 font-semibold cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('nome')}>
+                  <div className="flex items-center gap-2">Usuário {renderSortIcon('nome')}</div>
+                </th>
+                <th className="px-4 py-3 font-semibold hidden md:table-cell cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('vibe')}>
+                  <div className="flex items-center gap-2">Vibe {renderSortIcon('vibe')}</div>
+                </th>
                 <th className="px-4 py-3 font-semibold hidden lg:table-cell">Telefone</th>
                 <th className="text-center px-4 py-3 font-semibold">Ações</th>
               </tr>
@@ -97,9 +144,12 @@ export default function UsuariosPage() {
                     </div>
                   </td>
                   <td className="px-4 py-4 hidden md:table-cell">
-                    <span className="px-2 py-1 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg text-xs font-bold border border-purple-100 dark:border-purple-500/20">
+                    <button 
+                      onClick={() => setBusca(u.vibe || '')}
+                      className="px-2 py-1 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg text-xs font-bold border border-purple-100 dark:border-purple-500/20 hover:bg-purple-500/20 transition-colors"
+                    >
                        {u.vibe || '—'}
-                    </span>
+                    </button>
                   </td>
                   <td className="px-4 py-4 hidden lg:table-cell text-xs font-medium">{u.telefone || '—'}</td>
                   <td className="px-4 py-4 text-center">

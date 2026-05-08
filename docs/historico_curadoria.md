@@ -1,15 +1,17 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
-## [1.5] — 2026-05-08 — Filtros Pro e Dashboards de Engajamento
+## [1.5] — 2026-05-08 — Curação Pro e Estabilização de Ecossistema
 ### ✨ Funcionalidades
-- **Gestão de Filtros Pro:** Possibilidade de renomear grupos de filtros, editar rótulos e criar novos grupos dinamicamente que refletem instantaneamente no motor de busca do App.
-- **Analytics de Engajamento:** Novo dashboard "Top 10 Compartilhados" que exibe os eventos com maior alcance orgânico via App.
-- **Sincronização de Busca:** O motor de busca do app agora reconhece automaticamente tags e grupos criados dinamicamente no painel.
+- **Tabelas Inteligentes (CMS):** Implementada ordenação por coluna e filtros avançados em tempo real para eventos e usuários.
+- **Deep Search CMS:** Tags de "Tipo" e nomes de "Local" agora são clicáveis para filtragem instantânea na tabela.
+- **Gestão de Filtros Pro:** Possibilidade de renomear grupos de filtros, editar rótulos e criar novos grupos dinamicamente que refletem instantaneamente no App.
+- **Analytics de Engajamento:** Dashboard "Top 10 Compartilhados" para monitorar o alcance orgânico.
 
 ### 🛠️ Melhorias Técnicas
-- **Refatoração da Store de Filtros:** Transição de documentos estáticos para uma coleção dinâmica `configuracoes_filtros`.
-- **Estabilidade TypeScript:** Correção de erros de tipagem em Server Actions de insights e filtros.
-- **UI/UX do Dashboard:** Novo componente de lista de popularidade com micro-interações.
+- **Blindagem do App:** Sanitização defensiva no `useEventStore.ts` para evitar crashes por dados sujos no Firestore.
+- **Background Filtering (Mobile):** Integração do `InteractionManager` no motor de filtros para 60fps na UI.
+- **Security Rules:** Atualização completa das permissões do Firestore para acesso público às configurações de curadoria.
+- **Firebase Config:** Criação de `firestore.rules` e `firebase.json` para facilitar o deployment contínuo.
 
 ---
 

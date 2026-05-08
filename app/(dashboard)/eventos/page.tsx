@@ -20,15 +20,45 @@ export default function EventosPage() {
   const [eventoSelecionado, setEventoSelecionado] = React.useState<Evento | null>(null);
   const [selecionados, setSelecionados] = React.useState<Set<string>>(new Set());
 
+  const [ordem, setOrdem] = React.useState<{ col: string; desc: boolean }>({ col: 'dataInicio', desc: false });
+
+  const handleToggleOrdem = (col: string) => {
+    setOrdem(prev => ({
+      col,
+      desc: prev.col === col ? !prev.desc : true
+    }));
+  };
+
   const filtrados = React.useMemo(() => {
-    if (!busca.trim()) return eventos;
-    const q = busca.toLowerCase();
-    return eventos.filter((e) =>
-      e.nome.toLowerCase().includes(q) ||
-      (e.local?.nome || '').toLowerCase().includes(q) ||
-      (e.tipo_evento || '').toLowerCase().includes(q)
-    );
-  }, [eventos, busca]);
+    let result = [...eventos];
+    
+    // Filtro Global
+    if (busca.trim()) {
+      const q = busca.toLowerCase();
+      result = result.filter((e) =>
+        e.nome.toLowerCase().includes(q) ||
+        (e.local?.nome || '').toLowerCase().includes(q) ||
+        (e.tipo_evento || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Ordenação
+    result.sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      if (ordem.col === 'nome') { valA = a.nome; valB = b.nome; }
+      else if (ordem.col === 'local') { valA = a.local?.nome || ''; valB = b.local?.nome || ''; }
+      else if (ordem.col === 'tipo') { valA = a.tipo_evento || ''; valB = b.tipo_evento || ''; }
+      else if (ordem.col === 'data') { valA = a.dataInicio; valB = b.dataInicio; }
+
+      if (valA < valB) return ordem.desc ? 1 : -1;
+      if (valA > valB) return ordem.desc ? -1 : 1;
+      return 0;
+    });
+
+    return result;
+  }, [eventos, busca, ordem]);
 
   const paginados = filtrados.slice(pagina * itensPorPagina, (pagina + 1) * itensPorPagina);
   const totalPaginas = Math.ceil(filtrados.length / itensPorPagina);
@@ -54,6 +84,11 @@ export default function EventosPage() {
     else exportToCsv(data, 'eventos_export');
   };
 
+  const renderSortIcon = (col: string) => {
+    if (ordem.col !== col) return <Download size={14} className="opacity-20 rotate-180" />;
+    return ordem.desc ? <Download size={14} className="text-purple-500" /> : <Download size={14} className="text-purple-500 rotate-180" />;
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div className="flex items-center justify-between">
@@ -61,13 +96,23 @@ export default function EventosPage() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-        <input
-          type="text" 
-          value={busca} 
-          onChange={(e) => { setBusca(e.target.value); setPagina(0); }}
-          placeholder="Buscar por nome, local ou tipo..."
-          className="w-full max-w-md px-4 py-3 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
-        />
+        <div className="relative w-full max-w-md">
+          <input
+            type="text" 
+            value={busca} 
+            onChange={(e) => { setBusca(e.target.value); setPagina(0); }}
+            placeholder="Buscar por nome, local ou tipo..."
+            className="w-full px-4 py-3 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
+          />
+          {busca && (
+            <button 
+              onClick={() => setBusca('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-full text-zinc-400"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
         
         <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
           <span className="text-xs font-black text-zinc-400 uppercase tracking-widest">Exibir</span>
@@ -124,10 +169,18 @@ export default function EventosPage() {
                     {selecionados.size === paginados.length ? <CheckSquare size={20} /> : <Square size={20} />}
                   </button>
                 </th>
-                <th className="text-left px-4 py-3 font-semibold">Nome</th>
-                <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">Local</th>
-                <th className="text-left px-4 py-3 font-semibold hidden lg:table-cell">Tipo</th>
-                <th className="text-left px-4 py-3 font-semibold">Data</th>
+                <th className="text-left px-4 py-3 font-semibold cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('nome')}>
+                  <div className="flex items-center gap-2">Nome {renderSortIcon('nome')}</div>
+                </th>
+                <th className="text-left px-4 py-3 font-semibold hidden md:table-cell cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('local')}>
+                  <div className="flex items-center gap-2">Local {renderSortIcon('local')}</div>
+                </th>
+                <th className="text-left px-4 py-3 font-semibold hidden lg:table-cell cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('tipo')}>
+                  <div className="flex items-center gap-2">Tipo {renderSortIcon('tipo')}</div>
+                </th>
+                <th className="text-left px-4 py-3 font-semibold cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('data')}>
+                  <div className="flex items-center gap-2">Data {renderSortIcon('data')}</div>
+                </th>
                 <th className="text-center px-4 py-3 font-semibold">Ações</th>
               </tr>
             </thead>
@@ -140,9 +193,18 @@ export default function EventosPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3 text-zinc-900 dark:text-white font-medium max-w-[240px] truncate">{e.nome}</td>
-                  <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400 hidden md:table-cell">{e.local?.nome}</td>
+                  <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400 hidden md:table-cell">
+                    <button onClick={() => setBusca(e.local?.nome || '')} className="hover:text-purple-500 transition-colors text-left">{e.local?.nome}</button>
+                  </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="px-2 py-1 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-medium border border-purple-200 dark:border-purple-500/20">{e.tipo_evento || '—'}</span>
+                    {e.tipo_evento ? (
+                      <button 
+                        onClick={() => setBusca(e.tipo_evento || '')}
+                        className="px-2 py-1 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-medium border border-purple-200 dark:border-purple-500/20 hover:bg-purple-500/20 transition-colors"
+                      >
+                        {e.tipo_evento}
+                      </button>
+                    ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">{formatarData(e.dataInicio)}</td>
                   <td className="px-4 py-3 text-center">
