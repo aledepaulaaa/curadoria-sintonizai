@@ -1,5 +1,19 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [1.8] — 2026-05-08 — Gestão de Usuários e Insights Demográficos
+### ✨ Funcionalidades
+- **KPI de Idade Média**: Adicionado indicador no Dashboard que calcula em tempo real a média de idade da base de usuários (baseado em `dataNascimento`).
+- **User Management 2.0**: Tabela de usuários atualizada com coluna de idade e metadados de cadastro.
+- **Ações Administrativas**: Implementado botão de exclusão de usuários com confirmação de segurança e modal de visualização detalhada.
+- **UserDetailModal**: Interface completa para ver endereço, data de nascimento (editável) e histórico do usuário.
+
+### 🛠️ Melhorias Técnicas
+- **Insights Server Action**: Refatorada para retornar consistentemente 5 KPIs e lidar com estados de base vazia sem quebrar a UI.
+- **Modal Positioning Fix**: `IndicationsModal` movido para o layout principal para isolar seu `z-index` do `backdrop-blur` do Header, resolvendo desalinhamentos visuais.
+- **Regras de Segurança**: Atualizadas `firestore.rules` para permitir que admins listem a coleção completa de usuários.
+
+---
+
 ## [1.7] — 2026-05-08 — Notificações e Atribuição Comunitária
 ### ✨ Funcionalidades
 - **Notificações Real-time**: Implementado sino de notificações no Header que monitora em tempo real a coleção `indicacoes`.
