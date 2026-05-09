@@ -1,13 +1,18 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
-## [2.1] — 2026-05-09 — Edição em Massa, Upload Múltiplo e Taxonomia Pro
+## [2.1] — 2026-05-09 — Integridade e Refinamento
 ### ✨ Funcionalidades
+- **Implementação**: Sistema anti-duplicidade no servidor (Server Action `criarEvento`).
+- **Implementação**: Filtros avançados por coluna com Popovers na tabela de eventos.
+- **Implementação**: Integração da ferramenta `verificar_duplicado` no Agente IA Gemini.
 - **Edição em Massa (Bulk Edit)**: Implementado `BulkEditModal` na listagem de eventos, permitindo alterar Categoria, Estilo e Tipo de Evento de múltiplos itens simultaneamente.
 - **Upload Múltiplo na Galeria**: A `GaleriaPage` agora suporta o envio de até 20 imagens simultâneas com progresso individual e feedback de sucesso.
 - **Taxonomia Dinâmica Unificada**: O portal agora permite gerenciar "Tipos de Evento" (antigo Filtros), "Categorias" e "Estilos" em coleções Firestore totalmente independentes.
 - **IA Curadora 2.1**: Instruções da IA atualizadas para utilizar a nova estrutura de 3 níveis e eliminar definitivamente o campo "Vibe".
 
 ### 🛠️ Melhorias Técnicas
+- **Correção**: Exibição total das colunas da tabela em dispositivos móveis (remoção de `hidden`).
+- **Ajuste**: Filtro de "Tipo" configurado como Case-Insensitive para maior agilidade na busca.
 - **Ações Mobile-Ready**: Botões de Editar/Excluir no Chat IA agora são 100% visíveis em dispositivos touch, eliminando a dependência de hover.
 - **Integridade de Dados**: Scripts de inicialização atualizados para migrar dados de `configuracoes_filtros` para `configuracoes_tipo_evento`.
 - **UX de Galeria**: Adicionado suporte a múltiplos arquivos via `input type="file" multiple` com processamento em lote.

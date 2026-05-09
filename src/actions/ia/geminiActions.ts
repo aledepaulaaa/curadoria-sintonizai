@@ -64,6 +64,19 @@ const tools = [
           },
           required: ['eventos']
         }
+      },
+      {
+        name: 'verificar_duplicado',
+        description: 'Verifica se já existe um evento com o mesmo nome na mesma data e horário no banco de dados.',
+        parameters: {
+          type: 'object',
+          properties: {
+            nome: { type: 'string' },
+            dataInicio: { type: 'string', description: 'Formato YYYY-MM-DD' },
+            horario: { type: 'string' }
+          },
+          required: ['nome', 'dataInicio']
+        }
       }
     ]
   }
@@ -115,12 +128,18 @@ REGRAS CRÍTICAS DE DADOS:
 5. "gratuito": boolean. Baseie-se no preço ou descrição.
 6. "dataInicio": Formato ISO YYYY-MM-DD.
 
+VERIFICAÇÃO DE DUPLICATAS:
+- ANTES de chamar 'salvar_evento_no_firestore', você DEVE SEMPRE usar 'verificar_duplicado' para cada evento que deseja criar.
+- Se o evento já existir, informe ao usuário que o evento já está cadastrado, mostre os detalhes do evento existente e o ID dele (que será retornado pela ferramenta).
+- NÃO tente criar um evento que você já sabe que é duplicado.
+
 SE O USUÁRIO ENVIAR UMA IMAGEM:
 - Analise o texto na imagem (print de rede social, cartaz, etc).
 - Extraia Nome, Data, Local e Descrição.
 
 FERRAMENTAS DISPONÍVEIS:
-- Use 'salvar_evento_no_firestore' somente quando tiver todos os campos obrigatórios validados (Nome, Data, Local, Categoria, Estilo e Tipo de Evento).
+- Use 'verificar_duplicado' para garantir integridade.
+- Use 'salvar_evento_no_firestore' somente quando tiver todos os campos obrigatórios validados e souber que o evento é novo.
 `;
 
     const model = genAI.getGenerativeModel({
@@ -164,8 +183,10 @@ FERRAMENTAS DISPONÍVEIS:
             
             for (const evento of eventos) {
               const docRef = colRef.doc();
+              const { estilo_ritmo, ...rest } = evento;
               batch.set(docRef, {
-                ...evento,
+                ...rest,
+                estilo: estilo_ritmo,
                 status: 'pendente',
                 criadoEm: new Date().toISOString(),
                 origem: 'IA_ASSISTANT_VISION'
@@ -174,6 +195,34 @@ FERRAMENTAS DISPONÍVEIS:
             
             await batch.commit();
             results.push({ name: call.functionCall.name, response: { success: true, count: eventos.length } });
+          } catch (e: any) {
+            results.push({ name: call.functionCall.name, response: { success: false, error: e.message } });
+          }
+        }
+
+        if (call.functionCall?.name === 'verificar_duplicado') {
+          const { nome, dataInicio, horario } = call.functionCall.args as any;
+          
+          try {
+            const snap = await adminDb.collection('eventos').where('nome', '==', nome).get();
+            const dia = dataInicio.split('T')[0];
+            const duplicado = snap.docs.find(doc => {
+              const d = doc.data();
+              return d.dataInicio?.split('T')[0] === dia && d.horario === (horario || d.horario);
+            });
+
+            if (duplicado) {
+              results.push({ 
+                name: call.functionCall.name, 
+                response: { 
+                  duplicado: true, 
+                  id: duplicado.id, 
+                  detalhes: duplicado.data() 
+                } 
+              });
+            } else {
+              results.push({ name: call.functionCall.name, response: { duplicado: false } });
+            }
           } catch (e: any) {
             results.push({ name: call.functionCall.name, response: { success: false, error: e.message } });
           }

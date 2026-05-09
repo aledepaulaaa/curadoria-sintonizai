@@ -51,13 +51,16 @@ Painel CMS web para curadoria de eventos do Sintonizaí. Atua como fonte de verd
 - Variáveis sensíveis: Apenas no `.env` (não expostas ao client)
 
 ## Ecossistema Dinâmico
-- **Taxonomia Pro (3 Níveis)**: Gerenciamento independente de "Tipos de Evento", "Categorias" e "Estilos" via coleções Firestore. Sincronização em tempo real entre App, IA e Portal.
-- **Edição em Massa (Bulk Edit)**: Interface integrada na listagem de eventos para alteração em lote de metadados taxonômicos, otimizando o fluxo de curadoria.
+- [x] **Integridade de Dados**: Implementada trava de duplicidade (Nome + Data + Horário) na criação manual e via IA.
+- [x] **Filtros Avançados**: Adicionada filtragem por coluna com popovers (Nome, Local, Tipo, Data, Status).
+- [x] **Taxonomia Pro**: Remoção definitiva do campo "Vibe" e sincronização total de 3 níveis (Tipo, Categoria, Estilo).
+- [x] **UX Mobile**: Tabelas de Eventos e Usuários otimizadas para visibilidade total em smartphones.
 - **Upload Múltiplo (Lote)**: Galeria de mídia com suporte a upload de até 20 arquivos simultâneos, reduzindo o tempo de gestão de ativos.
 
 ## Inteligência e Automação
-- **IA Agente 2.1**: O Agente Gemini utiliza *Function Calling* para persistir eventos seguindo rigorosamente a taxonomia de 3 níveis. O campo "Vibe" foi eliminado em favor de dados estruturados.
-- **Curadoria Comunitária**: Notificações em tempo real para novas indicações, permitindo conversão imediata para eventos oficiais com atribuição de crédito.
+- **IA Agente 2.1**: O Agente Gemini utiliza *Function Calling* para persistir eventos seguindo rigorosamente a taxonomia de 3 níveis. Agora conta com ferramenta de verificação de duplicatas antes do salvamento.
+- **Filtros Cirúrgicos**: Sistema de filtros por coluna na listagem de eventos, permitindo buscas case-sensitive em "Tipo" e inputs rápidos via popovers.
+- **Integridade 360°**: Validação no servidor impede a criação de eventos idênticos (mesmo nome, data e hora).
 - **Gestão Demográfica**: Dashboard com análise de idade média e gestão completa de perfis de usuários.
 
 ## 🚀 Arquitetura de Dados Dinâmicos

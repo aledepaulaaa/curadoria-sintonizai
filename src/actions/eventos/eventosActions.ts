@@ -11,6 +11,10 @@ export async function listarEventos(): Promise<Evento[]> {
 }
 
 export async function criarEvento(evento: Omit<Evento, 'id'>): Promise<string> {
+  const duplicado = await verificarDuplicado(evento.nome, evento.dataInicio, evento.horario || '');
+  if (duplicado) {
+    throw new Error(`Já existe um evento cadastrado com este nome ("${evento.nome}") nesta data e horário.`);
+  }
   const ref = await adminDb.collection(COLLECTION).add(evento);
   return ref.id;
 }

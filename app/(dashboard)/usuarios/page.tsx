@@ -147,10 +147,10 @@ export default function UsuariosPage() {
                   <div className="flex items-center gap-2">Usuário {renderSortIcon('nome')}</div>
                 </th>
                 <th className="px-4 py-3 font-semibold">Idade</th>
-                <th className="px-4 py-3 font-semibold hidden md:table-cell cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('vibe')}>
+                <th className="px-4 py-3 font-semibold cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('vibe')}>
                   <div className="flex items-center gap-2">Vibe {renderSortIcon('vibe')}</div>
                 </th>
-                <th className="px-4 py-3 font-semibold hidden lg:table-cell">Telefone</th>
+                <th className="px-4 py-3 font-semibold">Telefone</th>
                 <th className="text-right px-4 py-3 font-semibold">Ações</th>
               </tr>
             </thead>
@@ -174,7 +174,7 @@ export default function UsuariosPage() {
                       {calcularIdade(u.dataNascimento)}
                     </div>
                   </td>
-                  <td className="px-4 py-4 hidden md:table-cell">
+                  <td className="px-4 py-4">
                     <button 
                       onClick={() => setBusca(u.vibe || '')}
                       className="px-2 py-1 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg text-xs font-bold border border-purple-100 dark:border-purple-500/20 hover:bg-purple-500/20 transition-colors"
@@ -182,7 +182,7 @@ export default function UsuariosPage() {
                        {u.vibe || '—'}
                     </button>
                   </td>
-                  <td className="px-4 py-4 hidden lg:table-cell text-xs font-medium">{u.telefone || '—'}</td>
+                  <td className="px-4 py-4 text-xs font-medium">{u.telefone || '—'}</td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button 

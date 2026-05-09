@@ -5,11 +5,12 @@ import { motion } from 'framer-motion';
 import { useEventos } from '@/src/hooks/useEventos';
 import { formatarData } from '@/src/utils/dateUtils';
 import type { Evento } from '@/src/types/evento';
-import { Eye, Edit2, Trash2, Download, CheckSquare, Square, X } from 'lucide-react';
+import { Eye, Edit2, Trash2, Download, CheckSquare, Square, X, Filter, ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
 import ConfirmModal from '@/src/components/common/ConfirmModal';
 import EventDetailModal from '@/src/components/eventos/EventDetailModal';
 import BulkEditModal from '@/src/components/eventos/BulkEditModal';
 import Pagination from '@/src/components/common/Pagination';
+import EmptyState from '@/src/components/common/EmptyState';
 import { exportToJson, exportToCsv } from '@/src/utils/exportUtils';
 
 export default function EventosPage() {
@@ -25,12 +26,51 @@ export default function EventosPage() {
   const [filtroQualidade, setFiltroQualidade] = React.useState<'todos' | 'imagem' | 'texto' | 'caracteres'>('todos');
 
   const [ordem, setOrdem] = React.useState<{ col: string; desc: boolean }>({ col: 'dataInicio', desc: false });
+  const [filtrosColuna, setFiltrosColuna] = React.useState({
+    nome: '',
+    local: '',
+    tipo: '',
+    data: '',
+    status: ''
+  });
+  const [filtroTemp, setFiltroTemp] = React.useState('');
+  const [colunaFiltroAtiva, setColunaFiltroAtiva] = React.useState<string | null>(null);
+
+  const aplicarFiltro = (coluna: string) => {
+    setFiltrosColuna(prev => ({ ...prev, [coluna]: filtroTemp }));
+    setColunaFiltroAtiva(null);
+  };
+
+  const limparFiltro = (coluna: string) => {
+    setFiltrosColuna(prev => ({ ...prev, [coluna]: '' }));
+    setFiltroTemp('');
+    setColunaFiltroAtiva(null);
+  };
+
+  const abrirFiltro = (coluna: string, valorAtual: string) => {
+    setFiltroTemp(valorAtual);
+    setColunaFiltroAtiva(coluna);
+  };
 
   const handleToggleOrdem = (col: string) => {
     setOrdem(prev => ({
       col,
       desc: prev.col === col ? !prev.desc : true
     }));
+  };
+
+  const limparTodosFiltros = () => {
+    setFiltrosColuna({
+      nome: '',
+      local: '',
+      tipo: '',
+      data: '',
+      status: ''
+    });
+    setBusca('');
+    setFiltroQualidade('todos');
+    setFiltroTemp('');
+    setColunaFiltroAtiva(null);
   };
 
   const filtrados = React.useMemo(() => {
@@ -62,6 +102,35 @@ export default function EventosPage() {
         (e.local?.nome || '').toLowerCase().includes(q) ||
         (e.tipo_evento || '').toLowerCase().includes(q)
       );
+    }
+
+    // Filtros por Coluna
+    if (filtrosColuna.nome) {
+      result = result.filter(e => e.nome.toLowerCase().includes(filtrosColuna.nome.toLowerCase()));
+    }
+    if (filtrosColuna.local) {
+      result = result.filter(e => (e.local?.nome || '').toLowerCase().includes(filtrosColuna.local.toLowerCase()));
+    }
+    if (filtrosColuna.tipo) {
+      const q = filtrosColuna.tipo.toLowerCase();
+      result = result.filter(e => (e.tipo_evento || '').toLowerCase().includes(q));
+    }
+    if (filtrosColuna.data) {
+      result = result.filter(e => formatarData(e.dataInicio).includes(filtrosColuna.data));
+    }
+    if (filtrosColuna.status) {
+      const s = filtrosColuna.status.toLowerCase();
+      result = result.filter(e => {
+        const hasImgError = !e.imagemUrl || (!e.imagemUrl.includes('firebasestorage') && !e.imagemUrl.includes('storage.googleapis'));
+        const hasTextError = !e.nome || e.nome.length < 5 || !e.descricao || e.descricao.length < 20;
+        const hasCharError = /[^\x20-\x7E\u00A0-\u00FF]/.test(e.nome) || /[^\x20-\x7E\u00A0-\u00FF]/.test(e.descricao || '');
+        
+        if (s === 'imagem') return hasImgError;
+        if (s === 'texto') return hasTextError;
+        if (s === 'caracteres') return hasCharError;
+        if (s === 'ok') return !hasImgError && !hasTextError && !hasCharError;
+        return true;
+      });
     }
 
     // Ordenação
@@ -127,8 +196,8 @@ export default function EventosPage() {
   };
 
   const renderSortIcon = (col: string) => {
-    if (ordem.col !== col) return <Download size={14} className="opacity-20 rotate-180" />;
-    return ordem.desc ? <Download size={14} className="text-purple-500" /> : <Download size={14} className="text-purple-500 rotate-180" />;
+    if (ordem.col !== col) return <ArrowUpDown size={14} className="text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity" />;
+    return ordem.desc ? <ChevronDown size={14} className="text-purple-500" /> : <ChevronUp size={14} className="text-purple-500" />;
   };
 
   return (
@@ -260,30 +329,179 @@ export default function EventosPage() {
       )}
 
       {carregando ? (
-        <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-white dark:bg-zinc-800 rounded-xl animate-pulse border border-zinc-100 dark:border-zinc-800" />)}</div>
+        <div className="space-y-2">{[1,2,3,4,5].map(i => <div key={i} className="h-16 bg-white dark:bg-zinc-800 rounded-xl animate-pulse border border-zinc-100 dark:border-zinc-800" />)}</div>
+      ) : filtrados.length === 0 ? (
+        <EmptyState 
+          titulo="Nenhum evento encontrado" 
+          subtitulo="Não encontramos eventos com os filtros aplicados. Tente ajustar sua busca ou limpar os filtros."
+          acao={<button onClick={limparTodosFiltros} className="mt-4 cursor-pointer flex items-center gap-2 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-xs font-bold">Limpar todos os filtros</button>}
+        />
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
-          <table className="w-full text-sm min-w-[800px]">
+          <table className="w-full text-sm min-w-[1000px]">
             <thead className="bg-zinc-50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
               <tr>
-                <th className="px-4 py-3 text-center w-10">
+                <th className="px-4 py-3 text-center w-12">
                   <button onClick={toggleSelecionarTudo} className="text-zinc-400 hover:text-purple-500 transition-colors">
                     {selecionados.size === paginados.length ? <CheckSquare size={20} /> : <Square size={20} />}
                   </button>
                 </th>
-                <th className="text-left px-4 py-3 font-semibold cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('nome')}>
-                  <div className="flex items-center gap-2">Nome {renderSortIcon('nome')}</div>
+                <th className="text-left px-4 py-3 font-semibold relative group">
+                  <div className="flex items-center gap-2">
+                    <span className="cursor-pointer hover:text-purple-500 whitespace-nowrap" onClick={() => handleToggleOrdem('nome')}>Nome</span>
+                    <button onClick={() => abrirFiltro('nome', filtrosColuna.nome)} className={`p-1 rounded transition-all ${filtrosColuna.nome ? 'text-purple-500 bg-purple-50 dark:bg-purple-500/10' : 'text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
+                      <Filter size={12} />
+                    </button>
+                    <div className="cursor-pointer" onClick={() => handleToggleOrdem('nome')}>
+                      {renderSortIcon('nome')}
+                    </div>
+                  </div>
+                  {colunaFiltroAtiva === 'nome' && (
+                    <div className="absolute top-full left-0 z-50 mt-1 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl w-64 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Filtrar Nome</span>
+                        <button onClick={() => setColunaFiltroAtiva(null)} className="text-zinc-400 hover:text-zinc-600"><X size={14} /></button>
+                      </div>
+                      <input 
+                        autoFocus
+                        value={filtroTemp}
+                        onChange={(e) => setFiltroTemp(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && aplicarFiltro('nome')}
+                        placeholder="Digite o nome..."
+                        className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={() => aplicarFiltro('nome')} className="flex-1 py-2 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-purple-700 transition-all active:scale-95">Aplicar</button>
+                        <button onClick={() => limparFiltro('nome')} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all">Limpar</button>
+                      </div>
+                    </div>
+                  )}
                 </th>
-                <th className="text-left px-4 py-3 font-semibold hidden md:table-cell cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('local')}>
-                  <div className="flex items-center gap-2">Local {renderSortIcon('local')}</div>
+                <th className="text-left px-4 py-3 font-semibold relative group">
+                  <div className="flex items-center gap-2">
+                    <span className="cursor-pointer hover:text-purple-500 whitespace-nowrap" onClick={() => handleToggleOrdem('local')}>Local</span>
+                    <button onClick={() => abrirFiltro('local', filtrosColuna.local)} className={`p-1 rounded transition-all ${filtrosColuna.local ? 'text-purple-500 bg-purple-50 dark:bg-purple-500/10' : 'text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
+                      <Filter size={12} />
+                    </button>
+                    <div className="cursor-pointer" onClick={() => handleToggleOrdem('local')}>
+                      {renderSortIcon('local')}
+                    </div>
+                  </div>
+                  {colunaFiltroAtiva === 'local' && (
+                    <div className="absolute top-full left-0 z-50 mt-1 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl w-64 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Filtrar Local</span>
+                        <button onClick={() => setColunaFiltroAtiva(null)} className="text-zinc-400 hover:text-zinc-600"><X size={14} /></button>
+                      </div>
+                      <input 
+                        autoFocus
+                        value={filtroTemp}
+                        onChange={(e) => setFiltroTemp(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && aplicarFiltro('local')}
+                        placeholder="Digite o local..."
+                        className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={() => aplicarFiltro('local')} className="flex-1 py-2 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-purple-700 transition-all active:scale-95">Aplicar</button>
+                        <button onClick={() => limparFiltro('local')} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all">Limpar</button>
+                      </div>
+                    </div>
+                  )}
                 </th>
-                <th className="text-left px-4 py-3 font-semibold hidden lg:table-cell cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('tipo')}>
-                  <div className="flex items-center gap-2">Tipo {renderSortIcon('tipo')}</div>
+                <th className="text-left px-4 py-3 font-semibold relative group">
+                  <div className="flex items-center gap-2">
+                    <span className="cursor-pointer hover:text-purple-500 whitespace-nowrap" onClick={() => handleToggleOrdem('tipo')}>Tipo</span>
+                    <button onClick={() => abrirFiltro('tipo', filtrosColuna.tipo)} className={`p-1 rounded transition-all ${filtrosColuna.tipo ? 'text-purple-500 bg-purple-50 dark:bg-purple-500/10' : 'text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
+                      <Filter size={12} />
+                    </button>
+                    <div className="cursor-pointer" onClick={() => handleToggleOrdem('tipo')}>
+                      {renderSortIcon('tipo')}
+                    </div>
+                  </div>
+                  {colunaFiltroAtiva === 'tipo' && (
+                    <div className="absolute top-full left-0 z-50 mt-1 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl w-64 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Filtrar Tipo</span>
+                        <button onClick={() => setColunaFiltroAtiva(null)} className="text-zinc-400 hover:text-zinc-600"><X size={14} /></button>
+                      </div>
+                      <input 
+                        autoFocus
+                        value={filtroTemp}
+                        onChange={(e) => setFiltroTemp(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && aplicarFiltro('tipo')}
+                        placeholder="Digite o tipo..."
+                        className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={() => aplicarFiltro('tipo')} className="flex-1 py-2 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-purple-700 transition-all active:scale-95">Aplicar</button>
+                        <button onClick={() => limparFiltro('tipo')} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all">Limpar</button>
+                      </div>
+                    </div>
+                  )}
                 </th>
-                <th className="text-left px-4 py-3 font-semibold cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('data')}>
-                  <div className="flex items-center gap-2">Data {renderSortIcon('data')}</div>
+                <th className="text-left px-4 py-3 font-semibold relative group">
+                  <div className="flex items-center gap-2">
+                    <span className="cursor-pointer hover:text-purple-500 whitespace-nowrap" onClick={() => handleToggleOrdem('data')}>Data</span>
+                    <button onClick={() => abrirFiltro('data', filtrosColuna.data)} className={`p-1 rounded transition-all ${filtrosColuna.data ? 'text-purple-500 bg-purple-50 dark:bg-purple-500/10' : 'text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
+                      <Filter size={12} />
+                    </button>
+                    <div className="cursor-pointer" onClick={() => handleToggleOrdem('data')}>
+                      {renderSortIcon('data')}
+                    </div>
+                  </div>
+                  {colunaFiltroAtiva === 'data' && (
+                    <div className="absolute top-full left-0 z-50 mt-1 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl w-64 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Filtrar Data</span>
+                        <button onClick={() => setColunaFiltroAtiva(null)} className="text-zinc-400 hover:text-zinc-600"><X size={14} /></button>
+                      </div>
+                      <input 
+                        autoFocus
+                        value={filtroTemp}
+                        onChange={(e) => setFiltroTemp(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && aplicarFiltro('data')}
+                        placeholder="Ex: 25/04/2026"
+                        className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={() => aplicarFiltro('data')} className="flex-1 py-2 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-purple-700 transition-all active:scale-95">Aplicar</button>
+                        <button onClick={() => limparFiltro('data')} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all">Limpar</button>
+                      </div>
+                    </div>
+                  )}
                 </th>
-                <th className="text-left px-4 py-3 font-semibold">Status</th>
+                <th className="text-left px-4 py-3 font-semibold relative group">
+                  <div className="flex items-center gap-2">
+                    <span className="whitespace-nowrap">Status</span>
+                    <button onClick={() => abrirFiltro('status', filtrosColuna.status)} className={`p-1 rounded transition-all ${filtrosColuna.status ? 'text-purple-500 bg-purple-50 dark:bg-purple-500/10' : 'text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
+                      <Filter size={12} />
+                    </button>
+                  </div>
+                  {colunaFiltroAtiva === 'status' && (
+                    <div className="absolute top-full left-0 z-50 mt-1 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl w-64 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Filtrar Status</span>
+                        <button onClick={() => setColunaFiltroAtiva(null)} className="text-zinc-400 hover:text-zinc-600"><X size={14} /></button>
+                      </div>
+                      <select 
+                        autoFocus
+                        value={filtroTemp}
+                        onChange={(e) => setFiltroTemp(e.target.value)}
+                        className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">Todos</option>
+                        <option value="imagem">Ajuste Imagem</option>
+                        <option value="texto">Ajuste Texto</option>
+                        <option value="caracteres">Caracteres Inválidos</option>
+                        <option value="ok">Status OK</option>
+                      </select>
+                      <div className="flex gap-2">
+                        <button onClick={() => aplicarFiltro('status')} className="flex-1 py-2 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-purple-700 transition-all active:scale-95">Aplicar</button>
+                        <button onClick={() => limparFiltro('status')} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all">Limpar</button>
+                      </div>
+                    </div>
+                  )}
+                </th>
                 <th className="text-center px-4 py-3 font-semibold">Ações</th>
               </tr>
             </thead>
@@ -296,10 +514,10 @@ export default function EventosPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3 text-zinc-900 dark:text-white font-medium max-w-[240px] truncate">{e.nome}</td>
-                  <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400 hidden md:table-cell">
+                  <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">
                     <button onClick={() => setBusca(e.local?.nome || '')} className="hover:text-purple-500 transition-colors text-left">{e.local?.nome}</button>
                   </td>
-                  <td className="px-4 py-3 hidden lg:table-cell">
+                  <td className="px-4 py-3">
                     {e.tipo_evento ? (
                       <button 
                         onClick={() => setBusca(e.tipo_evento || '')}
