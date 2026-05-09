@@ -1,5 +1,18 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [2.2] — 2026-05-09 — IA Copilot e Automação Massiva
+### ✨ Funcionalidades
+- **IA Copilot (Evolução)**: O Assistente Gemini agora atua como um Copiloto proativo, capaz de buscar eventos, propor correções e realizar ajustes massivos com supervisão humana.
+- **Ajuste Massivo Inteligente**: Nova interface de "Proposta de Ajuste" que exibe uma prévia (Antes -> Depois) de múltiplos eventos antes da persistência no Firestore.
+- **Preview & Confirm Workflow**: Implementado modal de confirmação no Chat IA, garantindo que operações em lote sejam validadas pelo curador.
+- **Curadoria Manual 2.1**: Seletor de "Tipo de Evento" na adição manual atualizado para exibição granular de itens (Show, Sarau, etc.), unificando a experiência com o modo IA.
+- **Status de Processamento**: Adicionado feedback visual em tempo real ("IA pensando...", "Lendo arquivo...", "Aplicando correções...") no Chat IA.
+
+### 🛠️ Melhorias Técnicas
+- **Server Action `aplicarAjusteMassivo`**: Criada infraestrutura de backend para processar atualizações em lote via Firebase Admin SDK com atomicidade.
+- **Taxonomia Achatada (Flattening)**: Otimizada a renderização de componentes de seleção para lidar com a estrutura hierárquica de metadados sem sacrificar a usabilidade.
+- **Enriquecimento de Contexto IA**: Injetado mapeamento completo de metadados (Categorias, Estilos e Tipos) nas instruções do sistema do Gemini, tornando-o "consciente" de 100% da taxonomia do projeto.
+
 ## [2.1] — 2026-05-09 — Integridade e Refinamento
 ### ✨ Funcionalidades
 - **Implementação**: Sistema anti-duplicidade no servidor (Server Action `criarEvento`).
