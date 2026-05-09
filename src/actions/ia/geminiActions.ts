@@ -50,14 +50,15 @@ const tools = [
                     properties: { nome: { type: 'string' } }
                   },
                   endereco: { type: 'string' },
-                  tipo_evento: { type: 'string' },
-                  estilo: { type: 'string', description: 'Gênero/Estilo musical ou cultural' },
+                  tipo_evento: { type: 'string', description: 'Tipo do evento (Música, Teatro, etc)' },
+                  categoria: { type: 'string', description: 'Categoria principal' },
+                  estilo_ritmo: { type: 'string', description: 'Gênero musical ou detalhamento cultural' },
                   gratuito: { type: 'boolean' },
                   preco: { type: 'string' },
                   linkIngresso: { type: 'string' },
                   imagemUrl: { type: 'string' }
                 },
-                required: ['nome', 'dataInicio', 'local', 'tipo_evento', 'estilo']
+                required: ['nome', 'dataInicio', 'local', 'tipo_evento', 'categoria', 'estilo_ritmo']
               }
             }
           },
@@ -77,10 +78,11 @@ export async function chatComGemini(
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
-    // Buscar Categorias e Estilos atuais para injetar na instrução
-    const [catSnap, estSnap] = await Promise.all([
+    // Buscar Categorias, Estilos e Tipos de Eventos atuais para injetar na instrução
+    const [catSnap, estSnap, tipSnap] = await Promise.all([
       adminDb.collection('configuracoes_categorias').orderBy('ordem', 'asc').get(),
-      adminDb.collection('configuracoes_estilos').orderBy('ordem', 'asc').get()
+      adminDb.collection('configuracoes_estilos').orderBy('ordem', 'asc').get(),
+      adminDb.collection('configuracoes_tipo_evento').orderBy('ordem', 'asc').get()
     ]);
 
     let categoriasTexto = '';
@@ -89,30 +91,36 @@ export async function chatComGemini(
     let estilosTexto = '';
     estSnap.forEach(doc => estilosTexto += `- ${doc.data().label}\n`);
 
+    let tiposTexto = '';
+    tipSnap.forEach(doc => tiposTexto += `- ${doc.data().label}\n`);
+
     const instruction = `
 Você é o Assistente de Curadoria do app Sintonizaí.
 Sua função é transformar informações brutas (texto ou imagens) em eventos estruturados de alta qualidade.
 
-CATEGORIAS PERMITIDAS (USE APENAS ESTAS NO CAMPO "tipo_evento"):
-${categoriasTexto || 'Show, Festival, Teatro, Exposição, Cinema, Sarau, Infantil'}
+CATEGORIAS PERMITIDAS (Campo "categoria"):
+${categoriasTexto || 'Show, Teatro, Exposição, Cinema, Gastronomia'}
 
-ESTILOS/RITMOS PERMITIDOS (USE APENAS ESTES NO CAMPO "estilo"):
-${estilosTexto || 'Samba, Rock, MPB, Jazz, Funk, Sertanejo, Pop'}
+ESTILOS/RITMOS PERMITIDOS (Campo "estilo_ritmo"):
+${estilosTexto || 'Samba, Rock, MPB, Jazz, Funk'}
+
+TIPOS DE EVENTOS PERMITIDOS (Campo "tipo_evento"):
+${tiposTexto || 'Música, Teatro, Dança, Literatura, Artes Visuais'}
 
 REGRAS CRÍTICAS DE DADOS:
-1. "tipo_evento": OBRIGATÓRIO. Escolha a categoria mais adequada da lista acima.
-2. "estilo": OBRIGATÓRIO. Use um dos estilos listados acima. Se não houver match direto, escolha o mais próximo e pergunte ao usuário.
-3. "vibe": NÃO UTILIZE este campo. Ele foi descontinuado.
-4. "gratuito": boolean. Baseie-se no preço ou descrição.
-5. "dataInicio": Formato ISO YYYY-MM-DD.
+1. "categoria": OBRIGATÓRIO. Escolha a categoria mais adequada da lista acima.
+2. "estilo_ritmo": OBRIGATÓRIO. Use um dos estilos listados acima.
+3. "tipo_evento": OBRIGATÓRIO. Use um dos tipos de eventos listados acima.
+4. "vibe": PROIBIDO. Este campo foi descontinuado e não deve ser preenchido.
+5. "gratuito": boolean. Baseie-se no preço ou descrição.
+6. "dataInicio": Formato ISO YYYY-MM-DD.
 
 SE O USUÁRIO ENVIAR UMA IMAGEM:
 - Analise o texto na imagem (print de rede social, cartaz, etc).
 - Extraia Nome, Data, Local e Descrição.
-- Se for um evento recorrente sem data específica, peça a data ao usuário.
 
 FERRAMENTAS DISPONÍVEIS:
-- Use 'salvar_evento_no_firestore' somente quando tiver todos os campos obrigatórios validados (Nome, Data, Local, Categoria, Estilo).
+- Use 'salvar_evento_no_firestore' somente quando tiver todos os campos obrigatórios validados (Nome, Data, Local, Categoria, Estilo e Tipo de Evento).
 `;
 
     const model = genAI.getGenerativeModel({

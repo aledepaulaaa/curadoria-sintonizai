@@ -233,8 +233,18 @@ export default function GeminiChat() {
                   <p className="text-sm font-bold text-zinc-900 dark:text-zinc-200 truncate pr-12">{c.titulo}</p>
                   <p className="text-[10px] text-zinc-400 mt-1">{new Date(c.atualizadoEm).toLocaleDateString()}</p>
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => { e.stopPropagation(); setEditandoTitulo(c.id); setNovoTitulo(c.titulo); }} className="p-1 hover:text-blue-500 text-zinc-400 md:text-inherit"><Edit3 size={14}/></button>
-                    <button onClick={(e) => { e.stopPropagation(); handleDeletar(c.id); }} className="p-1 hover:text-red-500 text-zinc-400 md:text-inherit"><Trash2 size={14}/></button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setEditandoTitulo(c.id); setNovoTitulo(c.titulo); }} 
+                      className="p-1.5 hover:text-blue-500 text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-700 md:bg-transparent rounded-lg shadow-sm md:shadow-none"
+                    >
+                      <Edit3 size={14}/>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDeletar(c.id); }} 
+                      className="p-1.5 hover:text-red-500 text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-700 md:bg-transparent rounded-lg shadow-sm md:shadow-none"
+                    >
+                      <Trash2 size={14}/>
+                    </button>
                   </div>
                 </>
               )}

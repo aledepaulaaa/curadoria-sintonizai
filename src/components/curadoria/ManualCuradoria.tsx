@@ -10,6 +10,7 @@ import {
 import { useEventos } from '@/src/hooks/useEventos';
 import { useCategorias } from '@/src/hooks/useCategorias';
 import { useEstilos } from '@/src/hooks/useEstilos';
+import { useTiposEvento } from '@/src/hooks/useTiposEvento';
 import ImageUpload from '../common/ImageUpload';
 import GallerySelector from './GallerySelector';
 import UserSelector from './UserSelector';
@@ -19,6 +20,7 @@ export default function ManualCuradoria() {
   const { criar } = useEventos();
   const { categorias, loading: loadingCategorias } = useCategorias();
   const { estilos, loading: loadingEstilos } = useEstilos();
+  const { tiposEvento, loading: loadingTipos } = useTiposEvento();
   const [salvando, setSalvando] = React.useState(false);
   const [abrirGaleria, setAbrirGaleria] = React.useState(false);
   const [form, setForm] = React.useState({
@@ -30,6 +32,7 @@ export default function ManualCuradoria() {
     endereco: '',
     categoria: '',
     estilo: '',
+    tipo_evento: '',
     gratuito: false,
     preco: '',
     linkIngresso: '',
@@ -39,14 +42,15 @@ export default function ManualCuradoria() {
 
   // Atualizar valores iniciais quando carregarem
   React.useEffect(() => {
-    if (!loadingCategorias && !loadingEstilos) {
+    if (!loadingCategorias && !loadingEstilos && !loadingTipos) {
       setForm(prev => ({
         ...prev,
         categoria: prev.categoria || (categorias[0]?.label || ''),
         estilo: prev.estilo || (estilos[0]?.label || ''),
+        tipo_evento: prev.tipo_evento || (tiposEvento[0]?.label || ''),
       }));
     }
-  }, [loadingCategorias, loadingEstilos, categorias, estilos]);
+  }, [loadingCategorias, loadingEstilos, loadingTipos, categorias, estilos, tiposEvento]);
 
   const handleChange = (field: string, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -63,7 +67,6 @@ export default function ManualCuradoria() {
         ...form,
         local: { nome: form.localNome || 'Não informado', lat: -23.5505, lng: -46.6333 },
         dataInicio: `${form.dataInicio}T12:00:00Z`,
-        tipo_evento: form.categoria,
         fonte: 'curadoria_manual'
       } as any);
       alert('Evento salvo com sucesso!');
@@ -76,6 +79,7 @@ export default function ManualCuradoria() {
         endereco: '',
         categoria: categorias[0]?.label || '',
         estilo: estilos[0]?.label || '',
+        tipo_evento: tiposEvento[0]?.label || '',
         gratuito: false,
         preco: '',
         linkIngresso: '',
@@ -130,7 +134,7 @@ export default function ManualCuradoria() {
                 <input value={form.localNome} onChange={e => handleChange('localNome', e.target.value)} className={inputCls} placeholder="Ex: Bar do Alemão" />
              </div>
 
-             <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                    <label className={labelCls}>Categoria</label>
                    <select value={form.categoria} onChange={e => handleChange('categoria', e.target.value)} className={inputCls}>
@@ -141,6 +145,12 @@ export default function ManualCuradoria() {
                    <label className={labelCls}>Estilo/Ritmo</label>
                    <select value={form.estilo} onChange={e => handleChange('estilo', e.target.value)} className={inputCls}>
                       {estilos.map((e: any) => <option key={e.id} value={e.label}>{e.label}</option>)}
+                   </select>
+                </div>
+                <div>
+                   <label className={labelCls}>Tipo de Evento</label>
+                   <select value={form.tipo_evento} onChange={e => handleChange('tipo_evento', e.target.value)} className={inputCls}>
+                      {tiposEvento.map((t: any) => <option key={t.id} value={t.label}>{t.label}</option>)}
                    </select>
                 </div>
              </div>
@@ -232,6 +242,9 @@ export default function ManualCuradoria() {
                   <div className="flex items-center gap-2 pt-2">
                      <span className="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-[9px] font-black text-zinc-400 uppercase tracking-widest border border-zinc-200 dark:border-zinc-700">
                         {form.categoria}
+                     </span>
+                     <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest border border-blue-100 dark:border-blue-800/50">
+                        {form.tipo_evento}
                      </span>
                      <span className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest border border-purple-100 dark:border-purple-800/50">
                         {form.estilo}

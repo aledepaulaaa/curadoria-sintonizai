@@ -1,12 +1,12 @@
 'use client';
 
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { listarPastaStorage, deletarArquivosBatch, uploadArquivoStorage } from '@/src/actions/storage/storageActions';
 import type { StorageItem } from '@/src/types/common';
 import { 
-  Folder, File, ChevronRight, ArrowLeft, 
-  Trash2, Upload, CheckSquare, Square, X, 
+  Folder, ChevronRight,
+  Trash2, Upload, CheckSquare, Square,
   Loader2, RefreshCw, Image as ImageIcon
 } from 'lucide-react';
 
@@ -58,23 +58,39 @@ export default function GaleriaPage() {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    if (files.length > 20) {
+      alert('Você só pode subir até 20 arquivos de uma vez.');
+      return;
+    }
 
     setUploading(true);
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const base64 = evt.target?.result as string;
-      try {
+    let sucessos = 0;
+    
+    try {
+      for (const file of files) {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+
+        const base64 = await base64Promise;
         await uploadArquivoStorage(base64, file.name, prefix);
-        await carregar(prefix, true); // Force refresh
-      } catch (err) {
-        alert('Erro no upload: ' + err);
-      } finally {
-        setUploading(false);
+        sucessos++;
       }
-    };
-    reader.readAsDataURL(file);
+      
+      await carregar(prefix, true); // Force refresh
+      if (sucessos > 1) alert(`${sucessos} arquivos enviados com sucesso!`);
+    } catch (err) {
+      console.error('Erro no upload:', err);
+      alert('Ocorreu um erro durante o upload de alguns arquivos.');
+    } finally {
+      setUploading(false);
+      // Limpar o input para permitir selecionar os mesmos arquivos novamente se necessário
+      e.target.value = '';
+    }
   };
 
   const handleDeletar = async () => {
@@ -123,8 +139,8 @@ export default function GaleriaPage() {
            
            <label className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-purple-500/20">
               {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-              <span>Fazer Upload</span>
-              <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*" disabled={uploading} />
+              <span>{uploading ? 'Enviando...' : 'Fazer Upload'}</span>
+              <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*" multiple disabled={uploading} />
            </label>
         </div>
       </div>

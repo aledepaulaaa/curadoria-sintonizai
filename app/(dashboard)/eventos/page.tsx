@@ -8,6 +8,7 @@ import type { Evento } from '@/src/types/evento';
 import { Eye, Edit2, Trash2, Download, CheckSquare, Square, X } from 'lucide-react';
 import ConfirmModal from '@/src/components/common/ConfirmModal';
 import EventDetailModal from '@/src/components/eventos/EventDetailModal';
+import BulkEditModal from '@/src/components/eventos/BulkEditModal';
 import Pagination from '@/src/components/common/Pagination';
 import { exportToJson, exportToCsv } from '@/src/utils/exportUtils';
 
@@ -18,6 +19,7 @@ export default function EventosPage() {
   const [itensPorPagina, setItensPorPagina] = React.useState(250);
   const [confirmarExcluir, setConfirmarExcluir] = React.useState<string | null>(null);
   const [confirmarExcluirLote, setConfirmarExcluirLote] = React.useState(false);
+  const [confirmarEditarLote, setConfirmarEditarLote] = React.useState(false);
   const [eventoSelecionado, setEventoSelecionado] = React.useState<Evento | null>(null);
   const [selecionados, setSelecionados] = React.useState<Set<string>>(new Set());
   const [filtroQualidade, setFiltroQualidade] = React.useState<'todos' | 'imagem' | 'texto' | 'caracteres'>('todos');
@@ -239,6 +241,12 @@ export default function EventosPage() {
               <Download size={14} /> CSV
             </button>
             <button 
+              onClick={() => setConfirmarEditarLote(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-xs font-bold"
+            >
+              <Edit2 size={14} /> Editar
+            </button>
+            <button 
               onClick={() => setConfirmarExcluirLote(true)}
               className="flex items-center gap-2 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs font-bold"
             >
@@ -319,24 +327,24 @@ export default function EventosPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => setEventoSelecionado(e)}
-                        className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 transition-colors"
+                        className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 md:bg-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 transition-colors shadow-sm md:shadow-none"
                         title="Visualizar"
                       >
                         <Eye size={16} />
                       </button>
                       <button 
                         onClick={() => setEventoSelecionado(e)}
-                        className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 text-blue-500 dark:text-blue-400 transition-colors"
+                        className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 md:bg-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 text-blue-500 dark:text-blue-400 transition-colors shadow-sm md:shadow-none"
                         title="Editar"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button 
                         onClick={() => setConfirmarExcluir(e.id || '')} 
-                        className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 text-red-500 dark:text-red-400 transition-colors"
+                        className="p-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 md:bg-transparent hover:bg-red-100 dark:hover:bg-red-500/10 text-red-500 dark:text-red-400 transition-colors shadow-sm md:shadow-none border border-red-100 md:border-none"
                         title="Excluir"
                       >
                         <Trash2 size={16} />
@@ -360,6 +368,15 @@ export default function EventosPage() {
         isOpen={!!eventoSelecionado}
         onClose={() => setEventoSelecionado(null)}
         evento={eventoSelecionado}
+      />
+
+      <BulkEditModal 
+        ids={Array.from(selecionados)}
+        isOpen={confirmarEditarLote}
+        onClose={() => {
+          setConfirmarEditarLote(false);
+          setSelecionados(new Set());
+        }}
       />
 
       <ConfirmModal

@@ -7,7 +7,8 @@ import {
   atualizarEvento, 
   deletarEvento, 
   criarEventosBatch, 
-  deletarEventosBatch 
+  deletarEventosBatch,
+  atualizarEventosBatch
 } from '@/src/actions/eventos/eventosActions';
 import { useEventStore } from '@/src/store/eventStore';
 import type { Evento } from '@/src/types/evento';
@@ -19,6 +20,7 @@ export function useEventos() {
     carregarEventos, 
     adicionarEvento, 
     atualizarEventoLocal, 
+    atualizarEventosBatchLocal,
     removerEventoLocal,
     removerEventosBatchLocal
   } = useEventStore();
@@ -43,6 +45,11 @@ export function useEventos() {
     atualizarEventoLocal(id, dados);
   }, [atualizarEventoLocal]);
 
+  const atualizarEmMassa = React.useCallback(async (ids: string[], dados: Partial<Evento>) => {
+    await atualizarEventosBatch(ids, dados);
+    atualizarEventosBatchLocal(ids, dados);
+  }, [atualizarEventosBatchLocal]);
+
   const deletar = React.useCallback(async (id: string) => {
     await deletarEvento(id);
     removerEventoLocal(id);
@@ -57,5 +64,5 @@ export function useEventos() {
     carregar(); 
   }, [carregar]);
 
-  return { eventos, carregando, carregar, criar, criarBatch, atualizar, deletar, deletarBatch };
+  return { eventos, carregando, carregar, criar, criarBatch, atualizar, atualizarEmMassa, deletar, deletarBatch };
 }

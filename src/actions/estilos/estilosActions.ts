@@ -1,6 +1,7 @@
 'use server';
 
 import { adminDb } from '@/src/services/firebaseAdmin';
+import { slugify } from '@/src/utils/stringUtils';
 
 export async function listarEstilos() {
   const snapshot = await adminDb.collection('configuracoes_estilos').orderBy('ordem', 'asc').get();
@@ -15,8 +16,10 @@ export async function listarEstilos() {
 }
 
 export async function salvarEstilo(id: string, data: { label: string, icone?: string, ordem?: number }) {
-  await adminDb.collection('configuracoes_estilos').doc(id).set({
+  const finalId = id || slugify(data.label);
+  await adminDb.collection('configuracoes_estilos').doc(finalId).set({
     ...data,
+    id: finalId,
     ultimaAtualizacao: new Date().toISOString()
   }, { merge: true });
 }

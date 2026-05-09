@@ -3,11 +3,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
-  listarFiltros, salvarFiltros, inicializarFiltrosPadrao, removerGrupoFiltro
-} from '@/src/actions/filtros/filtrosActions';
+  listarTiposEvento, salvarTipoEvento, inicializarTiposEventoPadrao, removerTipoEvento
+} from '@/src/actions/filtros/tiposEventoActions';
 import { 
-  Plus, Trash2, Save, RefreshCw, 
-  Settings2, Info, CheckCircle2, Loader2, Edit3, GripVertical, X
+  Plus, Trash2, Save, RefreshCw, Info, Loader2, Edit3, X
 } from 'lucide-react';
 
 export default function FiltrosPage() {
@@ -19,10 +18,10 @@ export default function FiltrosPage() {
   const carregar = React.useCallback(async () => {
     setCarregando(true);
     try {
-      const data = await listarFiltros();
+      const data = await listarTiposEvento();
       if (data.length === 0) {
-        await inicializarFiltrosPadrao();
-        const first = await listarFiltros();
+        await inicializarTiposEventoPadrao();
+        const first = await listarTiposEvento();
         setFiltros(first);
       } else {
         setFiltros(data);
@@ -65,7 +64,7 @@ export default function FiltrosPage() {
   };
 
   const handleCreateGroup = () => {
-    const nome = prompt('Nome do novo grupo de filtros:');
+    const nome = prompt('Nome do novo grupo de tipos de evento:');
     if (!nome) return;
     const id = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
     const novoGrupo = {
@@ -81,7 +80,7 @@ export default function FiltrosPage() {
   const handleRemoveGroup = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este grupo? Isso afetará a filtragem no app.')) return;
     try {
-      await removerGrupoFiltro(id);
+      await removerTipoEvento(id);
       setFiltros(prev => prev.filter(g => g.id !== id));
     } catch (e) {
       alert('Erro ao excluir grupo');
@@ -92,7 +91,7 @@ export default function FiltrosPage() {
     setSalvando(grupo.id);
     try {
       const { id, ...data } = grupo;
-      await salvarFiltros(id, data);
+      await salvarTipoEvento(id, data);
       setEditados(prev => {
         const novo = new Set(prev);
         novo.delete(grupo.id);
@@ -114,8 +113,8 @@ export default function FiltrosPage() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8 pb-20">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-black text-zinc-900 dark:text-white uppercase tracking-tighter">Gestão de Filtros</h1>
-          <p className="text-sm text-zinc-500 font-medium">Configure as opções de filtragem que aparecem no App Mobile.</p>
+          <h1 className="text-4xl font-black text-zinc-900 dark:text-white uppercase tracking-tighter">Gestão de Tipos de Eventos</h1>
+          <p className="text-sm text-zinc-500 font-medium">Configure os tipos de eventos (ex: Música, Teatro, etc) e seus sub-filtros que aparecem no App Mobile.</p>
         </div>
         <div className="flex gap-4">
           <button 

@@ -1,6 +1,7 @@
 'use server';
 
 import { adminDb } from '@/src/services/firebaseAdmin';
+import { slugify } from '@/src/utils/stringUtils';
 
 export async function listarCategorias() {
   const snapshot = await adminDb.collection('configuracoes_categorias').orderBy('ordem', 'asc').get();
@@ -15,8 +16,10 @@ export async function listarCategorias() {
 }
 
 export async function salvarCategoria(id: string, data: { label: string, ordem?: number }) {
-  await adminDb.collection('configuracoes_categorias').doc(id).set({
+  const finalId = id || slugify(data.label);
+  await adminDb.collection('configuracoes_categorias').doc(finalId).set({
     ...data,
+    id: finalId,
     ultimaAtualizacao: new Date().toISOString()
   }, { merge: true });
 }

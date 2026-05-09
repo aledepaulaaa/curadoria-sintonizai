@@ -13,6 +13,7 @@ interface EventState {
   carregarEventos: (force?: boolean) => Promise<void>;
   adicionarEvento: (evento: Evento) => void;
   atualizarEventoLocal: (id: string, dados: Partial<Evento>) => void;
+  atualizarEventosBatchLocal: (ids: string[], dados: Partial<Evento>) => void;
   removerEventoLocal: (id: string) => void;
   removerEventosBatchLocal: (ids: string[]) => void;
 }
@@ -59,6 +60,12 @@ export const useEventStore = create<EventState>()(
       atualizarEventoLocal: (id, dados) =>
         set((state) => ({
           eventos: state.eventos.map((e) => (e.id === id ? { ...e, ...dados } : e)),
+          ultimaAtualizacao: Date.now()
+        })),
+
+      atualizarEventosBatchLocal: (ids, dados) =>
+        set((state) => ({
+          eventos: state.eventos.map((e) => (ids.includes(e.id || '') ? { ...e, ...dados } : e)),
           ultimaAtualizacao: Date.now()
         })),
 

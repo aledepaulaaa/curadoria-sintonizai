@@ -3,7 +3,9 @@
 import React from 'react';
 import type { Evento } from '@/src/types/evento';
 import ImageUpload from '../common/ImageUpload';
-import { useFiltros } from '@/src/hooks/useFiltros';
+import { useCategorias } from '@/src/hooks/useCategorias';
+import { useEstilos } from '@/src/hooks/useEstilos';
+import { useTiposEvento } from '@/src/hooks/useTiposEvento';
 import { Image as ImageIcon, UserCheck } from 'lucide-react';
 import GallerySelector from './GallerySelector';
 import UserSelector from './UserSelector';
@@ -15,7 +17,10 @@ interface EventoFormProps {
 }
 
 export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
-  const { filtros, loading: loadingFiltros } = useFiltros();
+  const { categorias, loading: loadingCategorias } = useCategorias();
+  const { estilos, loading: loadingEstilos } = useEstilos();
+  const { tiposEvento, loading: loadingTipos } = useTiposEvento();
+
   const [form, setForm] = React.useState({
     nome: inicial?.nome || '',
     descricao: inicial?.descricao || '',
@@ -23,15 +28,28 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
     horario: inicial?.horario || '',
     localNome: inicial?.local?.nome || '',
     endereco: inicial?.endereco || '',
-    categoria: inicial?.categoria || 'Show',
-    estilo: inicial?.estilo || 'Samba',
-    vibe: inicial?.vibe || 'Cultural',
+    categoria: inicial?.categoria || '',
+    estilo: inicial?.estilo || '',
+    tipo_evento: inicial?.tipo_evento || '',
     gratuito: inicial?.gratuito || false,
     preco: inicial?.preco || '',
     linkIngresso: inicial?.linkIngresso || '',
     imagemUrl: inicial?.imagemUrl || '',
     indicadoPor: inicial?.indicadoPor || null as any,
   });
+
+  // Inicializar campos se vazios quando os metadados carregarem
+  React.useEffect(() => {
+    if (!loadingCategorias && !loadingEstilos && !loadingTipos) {
+      setForm(prev => ({
+        ...prev,
+        categoria: prev.categoria || (categorias[0]?.label || ''),
+        estilo: prev.estilo || (estilos[0]?.label || ''),
+        tipo_evento: prev.tipo_evento || (tiposEvento[0]?.label || ''),
+      }));
+    }
+  }, [loadingCategorias, loadingEstilos, loadingTipos, categorias, estilos, tiposEvento]);
+
   const [salvando, setSalvando] = React.useState(false);
   const [abrirGaleria, setAbrirGaleria] = React.useState(false);
 
@@ -52,22 +70,21 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
         local: { nome: form.localNome || 'Não informado', lat: -23.5505, lng: -46.6333 },
         endereco: form.endereco,
         categoria: form.categoria,
-        vibe: form.vibe,
-        bombando: false,
-        aoVivo: false,
-        likes: 0,
-        tipo_evento: form.categoria,
+        bombando: inicial?.bombando || false,
+        aoVivo: inicial?.aoVivo || false,
+        likes: inicial?.likes || 0,
+        tipo_evento: form.tipo_evento,
         estilo: form.estilo,
         gratuito: form.gratuito,
         preco: form.preco,
         linkIngresso: form.linkIngresso,
         imagemUrl: form.imagemUrl,
         indicadoPor: form.indicadoPor || undefined,
-        fonte: form.indicadoPor ? 'indicacao_usuario' : 'curadoria_manual',
-      });
+        fonte: inicial?.fonte || (form.indicadoPor ? 'indicacao_usuario' : 'curadoria_manual'),
+      } as any);
       if (!inicial) {
         setForm({ nome: '', descricao: '', dataInicio: '', horario: '', localNome: '', endereco: '',
-          categoria: 'Show', estilo: 'Samba', vibe: 'Cultural', gratuito: false, preco: '', linkIngresso: '', imagemUrl: '', indicadoPor: null });
+          categoria: categorias[0]?.label || '', estilo: estilos[0]?.label || '', tipo_evento: tiposEvento[0]?.label || '', gratuito: false, preco: '', linkIngresso: '', imagemUrl: '', indicadoPor: null });
       }
     } finally {
       setSalvando(false);
@@ -103,13 +120,13 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
           <div>
             <label className={labelCls}>Categoria</label>
             <select value={form.categoria} onChange={(e) => handleChange('categoria', e.target.value)} className={inputCls}>
-              {(filtros.categorias || []).map((t: string) => <option key={t} value={t}>{t}</option>)}
+              {categorias.map((c: any) => <option key={c.id} value={c.label}>{c.label}</option>)}
             </select>
           </div>
           <div>
-            <label className={labelCls}>Vibe</label>
-            <select value={form.vibe} onChange={(e) => handleChange('vibe', e.target.value)} className={inputCls}>
-              {(filtros.vibes || []).map((v: string) => <option key={v} value={v}>{v}</option>)}
+            <label className={labelCls}>Tipo de Evento</label>
+            <select value={form.tipo_evento} onChange={(e) => handleChange('tipo_evento', e.target.value)} className={inputCls}>
+              {tiposEvento.map((t: any) => <option key={t.id} value={t.label}>{t.label}</option>)}
             </select>
           </div>
         </div>
@@ -138,11 +155,7 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
         <div>
           <label className={labelCls}>Estilo Musical / Linguagem</label>
           <select value={form.estilo} onChange={(e) => handleChange('estilo', e.target.value)} className={inputCls}>
-            <option value="">Selecione...</option>
-            {form.categoria === 'Teatro' 
-              ? (filtros.teatro || []).map((r: string) => <option key={r} value={r}>{r}</option>)
-              : (filtros.ritmos || []).map((r: string) => <option key={r} value={r}>{r}</option>)
-            }
+            {estilos.map((e: any) => <option key={e.id} value={e.label}>{e.label}</option>)}
           </select>
         </div>
         <div>

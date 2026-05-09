@@ -41,6 +41,23 @@ export async function deletarEvento(id: string): Promise<void> {
   await adminDb.collection(COLLECTION).doc(id).delete();
 }
 
+export async function atualizarEventosBatch(ids: string[], dados: Partial<Evento>): Promise<number> {
+  const batch = adminDb.batch();
+  let count = 0;
+  
+  for (const id of ids) {
+    const ref = adminDb.collection(COLLECTION).doc(id);
+    batch.update(ref, dados);
+    count++;
+    if (count % 500 === 0) {
+      await batch.commit();
+    }
+  }
+  
+  if (count % 500 !== 0) await batch.commit();
+  return count;
+}
+
 export async function deletarEventosBatch(ids: string[]): Promise<number> {
   const batch = adminDb.batch();
   let count = 0;

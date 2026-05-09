@@ -23,7 +23,7 @@ const NAV_ITEMS = [
   { href: '/usuarios', label: 'Usuários', icon: Users },
   { href: '/categorias', label: 'Categorias', icon: Tag },
   { href: '/estilos', label: 'Estilos', icon: Music },
-  { href: '/filtros', label: 'Filtros', icon: Settings2 },
+  { href: '/filtros', label: 'Tipos de Evento', icon: Settings2 },
   { href: '/anuncios', label: 'Banners', icon: Megaphone },
   { href: '/galeria', label: 'Galeria', icon: ImageIcon },
   { href: '/api-docs', label: 'API Docs', icon: FileText },

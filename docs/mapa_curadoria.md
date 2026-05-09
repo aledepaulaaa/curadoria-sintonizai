@@ -51,20 +51,25 @@ Painel CMS web para curadoria de eventos do Sintonizaí. Atua como fonte de verd
 - Variáveis sensíveis: Apenas no `.env` (não expostas ao client)
 
 ## Ecossistema Dinâmico
-
-- **Filtros Dinâmicos (Pro)**: Gerenciamento total de grupos de filtros, rótulos e itens via coleção `configuracoes_filtros`. Suporte a reordenamento, edição de nomes e criação de novos grupos que sincronizam instantaneamente com o motor de busca do App.
-- **Métricas de Engajamento**: Dashboards em tempo real com "Top 10 Eventos Mais Compartilhados" e agregador de viralidade.
-- **Deep Linking**: Configuração universal (`assetlinks.json`) para abertura direta de eventos compartilhados nos domínios `.com.br` e `.app.br`.
+- **Taxonomia Pro (3 Níveis)**: Gerenciamento independente de "Tipos de Evento", "Categorias" e "Estilos" via coleções Firestore. Sincronização em tempo real entre App, IA e Portal.
+- **Edição em Massa (Bulk Edit)**: Interface integrada na listagem de eventos para alteração em lote de metadados taxonômicos, otimizando o fluxo de curadoria.
+- **Upload Múltiplo (Lote)**: Galeria de mídia com suporte a upload de até 20 arquivos simultâneos, reduzindo o tempo de gestão de ativos.
 
 ## Inteligência e Automação
-- **IA Curadoria Ativa**: O Chat com Gemini foi convertido em um **Agente Funcional**. Através de *Function Calling*, a IA pode persistir eventos diretamente no Firestore usando o Firebase Admin SDK, garantindo padronização de dados (campo `estilo`) e produtividade em escala. Agora com validação rigorosa de campos obrigatórios e confirmação ativa.
-- **Curadoria Comunitária**: Sistema de notificações em tempo real no Header que monitora a coleção `indicacoes`. Permite converter sugestões de usuários em eventos oficiais com um clique, mantendo a rastreabilidade.
-- **Atribuição de Créditos**: Componente `UserSelector` permite vincular um evento a um usuário da base, garantindo que o app mobile exiba "Indicado por [Nome]" para fomentar o engajamento.
-- **Gestão Demográfica**: Tabela de usuários agora exibe a **idade** (calculada via `dataNascimento`) e botões de ação para **Visualizar Detalhes** (modal completo com endereço e metadados) e **Excluir** conta.
-- **Inteligência de Dados**: Dashboard expandido para 5 colunas, incluindo o KPI de **Idade Média** dos usuários para análise demográfica da base.
+- **IA Agente 2.1**: O Agente Gemini utiliza *Function Calling* para persistir eventos seguindo rigorosamente a taxonomia de 3 níveis. O campo "Vibe" foi eliminado em favor de dados estruturados.
+- **Curadoria Comunitária**: Notificações em tempo real para novas indicações, permitindo conversão imediata para eventos oficiais com atribuição de crédito.
+- **Gestão Demográfica**: Dashboard com análise de idade média e gestão completa de perfis de usuários.
+
+## 🚀 Arquitetura de Dados Dinâmicos
+O ecossistema opera sobre metadados totalmente dinâmicos:
+- **Coleções de Configuração**: `configuracoes_tipo_evento`, `configuracoes_categorias` e `configuracoes_estilos`.
+- **Sincronização**: Alterações no portal refletem instantaneamente no motor de busca do App e no conhecimento contextual da IA.
+
+## 📱 Experiência Mobile & Acessibilidade
+- **Interface Touch-First**: Ações críticas (Bulk Edit, Chat Actions, Galeria) otimizadas para dispositivos touch, eliminando dependência de hover.
+- **Sidebar & Paginação**: Navegação responsiva com sidebar retrátil e paginação mobile-friendly.
 
 ## Evoluções Futuras
-
-1. Sistema de "Rollback" para eventos deletados acidentalmente.
-2. Notificações push automáticas ao publicar eventos de alta relevância (Segmentação por interesse).
-3. Exportação avançada de relatórios (PDF/Excel) para produtores de eventos.
+1. Notificações push automáticas segmentadas por interesse de Estilo/Categoria.
+2. Exportação avançada de relatórios (PDF/Excel) para produtores de eventos.
+3. Sistema de Rollback e histórico de edições por administrador.
