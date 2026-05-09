@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import {  FileUp, CheckCircle2, AlertTriangle, Loader2, Check } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { criarEventosBatch, listarEventos } from '@/src/actions/eventos/eventosActions';
+import Pagination from '../common/Pagination';
 
 export default function ImportManager() {
   const [pendingItems, setPendingItems] = React.useState<any[]>([]);
@@ -12,6 +13,8 @@ export default function ImportManager() {
   const [loading, setLoading] = React.useState(false);
   const [stats, setStats] = React.useState({ total: 0, duplicados: 0, novos: 0 });
   const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set());
+  const [pagina, setPagina] = React.useState(0);
+  const itensPorPagina = 10;
 
   // Carrega nomes existentes para check rápido
   React.useEffect(() => {
@@ -159,7 +162,7 @@ export default function ImportManager() {
           {/* Table Preview */}
           <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm border-collapse">
+              <table className="w-full text-left text-sm border-collapse min-w-[600px]">
                 <thead>
                   <tr className="bg-zinc-50 dark:bg-zinc-800/50 text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">
                     <th className="px-4 py-4 w-10"></th>
@@ -170,7 +173,7 @@ export default function ImportManager() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                  {pendingItems.map((item) => (
+                  {pendingItems.slice(pagina * itensPorPagina, (pagina + 1) * itensPorPagina).map((item) => (
                     <tr key={item._id} className={`group ${item._status === 'duplicado' ? 'opacity-60 grayscale-[0.5]' : ''}`}>
                       <td className="px-4 py-3">
                          <input 
@@ -212,6 +215,12 @@ export default function ImportManager() {
               </table>
             </div>
           </div>
+
+          <Pagination 
+            pagina={pagina} 
+            totalPaginas={Math.ceil(pendingItems.length / itensPorPagina)} 
+            onPaginaChange={setPagina} 
+          />
 
           {/* Footer Actions */}
           <div className="flex justify-between items-center bg-zinc-900 text-white p-6 rounded-3xl shadow-2xl shadow-purple-500/10">

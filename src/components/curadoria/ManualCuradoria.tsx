@@ -26,15 +26,27 @@ export default function ManualCuradoria() {
     horario: '',
     localNome: '',
     endereco: '',
-    categoria: 'Show',
-    vibe: 'Cultural',
-    estilo: 'Samba',
+    categoria: '',
+    vibe: '',
+    estilo: '',
     gratuito: false,
     preco: '',
     linkIngresso: '',
     imagemUrl: '',
     indicadoPor: null as any,
   });
+
+  // Atualizar valores iniciais quando os filtros carregarem
+  React.useEffect(() => {
+    if (!loadingFiltros && filtros) {
+      setForm(prev => ({
+        ...prev,
+        categoria: prev.categoria || (filtros.categorias?.[0] || ''),
+        vibe: prev.vibe || (filtros.vibes?.[0] || ''),
+        estilo: prev.estilo || (filtros.ritmos?.[0] || ''),
+      }));
+    }
+  }, [loadingFiltros, filtros]);
 
   const handleChange = (field: string, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -62,9 +74,9 @@ export default function ManualCuradoria() {
         horario: '',
         localNome: '',
         endereco: '',
-        categoria: 'Show',
-        vibe: 'Cultural',
-        estilo: 'Samba',
+        categoria: filtros.categorias?.[0] || '',
+        vibe: filtros.vibes?.[0] || '',
+        estilo: filtros.ritmos?.[0] || '',
         gratuito: false,
         preco: '',
         linkIngresso: '',
@@ -119,7 +131,7 @@ export default function ManualCuradoria() {
                 <input value={form.localNome} onChange={e => handleChange('localNome', e.target.value)} className={inputCls} placeholder="Ex: Bar do Alemão" />
              </div>
 
-             <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-3 gap-4">
                 <div>
                    <label className={labelCls}>Categoria</label>
                    <select value={form.categoria} onChange={e => handleChange('categoria', e.target.value)} className={inputCls}>
@@ -130,6 +142,12 @@ export default function ManualCuradoria() {
                    <label className={labelCls}>Vibe</label>
                    <select value={form.vibe} onChange={e => handleChange('vibe', e.target.value)} className={inputCls}>
                       {(filtros.vibes || []).map((v: string) => <option key={v} value={v}>{v}</option>)}
+                   </select>
+                </div>
+                <div>
+                   <label className={labelCls}>Estilo/Ritmo</label>
+                   <select value={form.estilo} onChange={e => handleChange('estilo', e.target.value)} className={inputCls}>
+                      {(filtros.ritmos || []).map((r: string) => <option key={r} value={r}>{r}</option>)}
                    </select>
                 </div>
              </div>

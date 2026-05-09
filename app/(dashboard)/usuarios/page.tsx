@@ -4,8 +4,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { excluirUsuario, listarUsuarios } from '@/src/actions/usuarios/usuariosActions';
 import type { Usuario } from '@/src/types/usuario';
-import { Edit2, Search, UserCheck, X, Trash2, Eye, Calendar } from 'lucide-react';
+import { Edit2, Search, UserCheck, X, Trash2, Eye, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
 import UserDetailModal from '@/src/components/usuarios/UserDetailModal';
+import Pagination from '@/src/components/common/Pagination';
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = React.useState<Usuario[]>([]);
@@ -92,8 +93,8 @@ export default function UsuariosPage() {
   const totalPaginas = Math.ceil(filtrados.length / itensPorPagina);
 
   const renderSortIcon = (col: string) => {
-    if (ordem.col !== col) return <Search size={14} className="opacity-20 rotate-180" />; // Usando Search como placeholder icone se necessário
-    return ordem.desc ? <Search size={14} className="text-purple-500" /> : <Search size={14} className="text-purple-500 rotate-180" />;
+    if (ordem.col !== col) return <ChevronUp size={14} className="opacity-20" />;
+    return ordem.desc ? <ChevronDown size={14} className="text-purple-500" /> : <ChevronUp size={14} className="text-purple-500" />;
   };
 
   return (
@@ -139,7 +140,7 @@ export default function UsuariosPage() {
         <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-16 bg-white dark:bg-zinc-800 rounded-xl animate-pulse border border-zinc-100 dark:border-zinc-800" />)}</div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
-          <table className="w-full text-sm text-left">
+          <table className="w-full text-sm text-left min-w-[700px]">
             <thead className="bg-zinc-50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
               <tr>
                 <th className="px-4 py-3 font-semibold cursor-pointer hover:text-purple-500 transition-colors" onClick={() => handleToggleOrdem('nome')}>
@@ -183,7 +184,7 @@ export default function UsuariosPage() {
                   </td>
                   <td className="px-4 py-4 hidden lg:table-cell text-xs font-medium">{u.telefone || '—'}</td>
                   <td className="px-4 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => setUsuarioSelecionado(u)}
                         className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 text-purple-500 transition-colors"
@@ -207,16 +208,11 @@ export default function UsuariosPage() {
         </div>
       )}
 
-      {/* Paginação */}
-      {totalPaginas > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-4">
-          <button onClick={() => setPagina(Math.max(0, pagina - 1))} disabled={pagina === 0}
-            className="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors font-bold">←</button>
-          <span className="text-sm font-bold text-zinc-600 dark:text-zinc-400">{pagina + 1} / {totalPaginas}</span>
-          <button onClick={() => setPagina(Math.min(totalPaginas - 1, pagina + 1))} disabled={pagina >= totalPaginas - 1}
-            className="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors font-bold">→</button>
-        </div>
-      )}
+      <Pagination 
+        pagina={pagina} 
+        totalPaginas={totalPaginas} 
+        onPaginaChange={setPagina} 
+      />
 
       <UserDetailModal 
         user={usuarioSelecionado} 

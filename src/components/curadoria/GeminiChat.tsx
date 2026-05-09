@@ -34,6 +34,8 @@ export default function GeminiChat() {
   const [sidebarAberta, setSidebarAberta] = React.useState(true);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
+  const [imagemAnexada, setImagemAnexada] = React.useState<{ data: string, mimeType: string, preview: string } | null>(null);
+
   const carregarConversas = React.useCallback(async () => {
     const lista = await listarConversasIA();
     setConversas(lista);
@@ -78,15 +80,24 @@ export default function GeminiChat() {
     if (conversaAtiva?.id === id) setConversaAtiva(null);
   };
 
-  const processarArquivo = async (file: File): Promise<string> => {
+  const processarArquivo = async (file: File): Promise<{ content?: string, image?: { data: string, mimeType: string, preview: string } }> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       
-      if (file.name.endsWith('.json')) {
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.readAsText(file);
-      } else if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
-        reader.onload = (e) => resolve(e.target?.result as string);
+      if (file.type.startsWith('image/')) {
+        reader.onload = (e) => {
+          const base64 = (e.target?.result as string).split(',')[1];
+          resolve({ 
+            image: { 
+              data: base64, 
+              mimeType: file.type,
+              preview: e.target?.result as string
+            } 
+          });
+        };
+        reader.readAsDataURL(file);
+      } else if (file.name.endsWith('.json') || file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
+        reader.onload = (e) => resolve({ content: e.target?.result as string });
         reader.readAsText(file);
       } else if (file.name.endsWith('.xlsx')) {
         reader.onload = (e) => {
@@ -94,7 +105,7 @@ export default function GeminiChat() {
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
           const json = XLSX.utils.sheet_to_json(firstSheet);
-          resolve(JSON.stringify(json, null, 2));
+          resolve({ content: JSON.stringify(json, null, 2) });
         };
         reader.readAsArrayBuffer(file);
       } else {
@@ -109,30 +120,38 @@ export default function GeminiChat() {
 
     setLoading(true);
     try {
-      const content = await processarArquivo(file);
-      const prompt = `Analise este arquivo (${file.name}):\n\n${content}`;
-      setInput(prompt);
+      const res = await processarArquivo(file);
+      if (res.image) {
+        setImagemAnexada(res.image);
+      } else if (res.content) {
+        const prompt = `Analise este arquivo (${file.name}):\n\n${res.content}`;
+        setInput(prompt);
+      }
     } catch (err: any) {
       setError(err);
     } finally {
       setLoading(false);
+      e.target.value = ''; // Limpar input
     }
   };
 
   const handleSend = async () => {
-    if (!input.trim() || loading || !conversaAtiva) return;
+    if ((!input.trim() && !imagemAnexada) || loading || !conversaAtiva) return;
 
-    const userMsg: Message = { role: 'user', parts: [{ text: input }] };
+    const textoEnvio = input.trim() || (imagemAnexada ? "Analise esta imagem e extraia os dados do evento." : "");
+    const userMsg: Message = { role: 'user', parts: [{ text: textoEnvio }] };
     const novasMensagens = [...conversaAtiva.mensagens, userMsg];
     
     // Update local state immediately
     setConversaAtiva({ ...conversaAtiva, mensagens: novasMensagens });
     setInput('');
+    const imgParaEnviar = imagemAnexada;
+    setImagemAnexada(null);
     setLoading(true);
     setError(null);
 
     try {
-      const response = await chatComGemini(novasMensagens);
+      const response = await chatComGemini(novasMensagens, imgParaEnviar ? { data: imgParaEnviar.data, mimeType: imgParaEnviar.mimeType } : undefined);
       if (response.success && response.data) {
         const modelMsg: Message = { role: 'model', parts: [{ text: response.data }] };
         const finalMsgs = [...novasMensagens, modelMsg];
@@ -220,7 +239,7 @@ export default function GeminiChat() {
               </h3>
               <div className="flex items-center gap-1.5">
                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                 <span className="text-[10px] font-bold text-zinc-500 uppercase">IA Ativa</span>
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase">IA Vision Ativa</span>
               </div>
             </div>
           </div>
@@ -244,7 +263,7 @@ export default function GeminiChat() {
               <Sparkles size={48} className="text-zinc-300 dark:text-zinc-700" />
               <div className="max-w-xs">
                  <p className="text-sm font-bold text-zinc-400">Chat Iniciado!</p>
-                 <p className="text-xs text-zinc-500 mt-1">Envie uma mensagem ou anexe um arquivo para começar a análise.</p>
+                 <p className="text-xs text-zinc-500 mt-1">Envie uma mensagem ou anexe um print de evento.</p>
               </div>
             </div>
           ) : (
@@ -302,29 +321,51 @@ export default function GeminiChat() {
 
         {/* Input */}
         <div className="p-6 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800">
-          <div className="flex gap-2 relative">
-            <div className="absolute -top-12 left-0 flex gap-2">
-               <label className="p-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors shadow-sm text-zinc-500 flex items-center gap-2 text-xs font-bold">
-                  <Paperclip size={14} /> Anexar Dados
-                  <input type="file" accept=".json,.csv,.xlsx,.txt" onChange={handleFileUpload} className="hidden" />
-               </label>
-            </div>
+          <div className="flex flex-col gap-3">
+            {/* Imagem Anexada Preview */}
+            <AnimatePresence>
+              {imagemAnexada && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-purple-500 group"
+                >
+                  <img src={imagemAnexada.preview} alt="Preview" className="w-full h-full object-cover" />
+                  <button 
+                    onClick={() => setImagemAnexada(null)}
+                    className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={12} />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            <input
-              disabled={!conversaAtiva}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={conversaAtiva ? "Pergunte algo ou cole dados..." : "Selecione uma conversa..."}
-              className="flex-1 px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
-            />
-            <button 
-              onClick={handleSend}
-              disabled={loading || !input.trim() || !conversaAtiva}
-              className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 disabled:opacity-50 transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center"
-            >
-              <Send size={18} />
-            </button>
+            <div className="flex gap-2 relative">
+              <div className="flex items-center gap-2">
+                 <label className="p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors shadow-sm text-zinc-500">
+                    <Paperclip size={18} />
+                    <input type="file" accept=".json,.csv,.xlsx,.txt,image/*" onChange={handleFileUpload} className="hidden" />
+                 </label>
+              </div>
+
+              <input
+                disabled={!conversaAtiva}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder={conversaAtiva ? "Pergunte algo ou anexe um print..." : "Selecione uma conversa..."}
+                className="flex-1 px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
+              />
+              <button 
+                onClick={handleSend}
+                disabled={loading || (!input.trim() && !imagemAnexada) || !conversaAtiva}
+                className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 disabled:opacity-50 transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center"
+              >
+                <Send size={18} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

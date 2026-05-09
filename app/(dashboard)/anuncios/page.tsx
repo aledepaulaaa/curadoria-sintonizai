@@ -302,7 +302,7 @@ export default function AnunciosPage() {
                 <p className="text-zinc-400 text-xs font-medium line-clamp-1">{b.subtitulo}</p>
               </div>
 
-              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
+              <div className="absolute top-4 right-4 flex gap-2 md:opacity-0 md:group-hover:opacity-100 transition-all transform md:translate-y-2 md:group-hover:translate-y-0">
                 <button 
                   onClick={() => handleEdit(b)}
                   className="p-3 bg-white text-zinc-900 rounded-2xl hover:bg-purple-600 hover:text-white shadow-xl transition-all"

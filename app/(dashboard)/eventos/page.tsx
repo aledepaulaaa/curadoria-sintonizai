@@ -8,6 +8,7 @@ import type { Evento } from '@/src/types/evento';
 import { Eye, Edit2, Trash2, Download, CheckSquare, Square, X } from 'lucide-react';
 import ConfirmModal from '@/src/components/common/ConfirmModal';
 import EventDetailModal from '@/src/components/eventos/EventDetailModal';
+import Pagination from '@/src/components/common/Pagination';
 import { exportToJson, exportToCsv } from '@/src/utils/exportUtils';
 
 export default function EventosPage() {
@@ -254,7 +255,7 @@ export default function EventosPage() {
         <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-white dark:bg-zinc-800 rounded-xl animate-pulse border border-zinc-100 dark:border-zinc-800" />)}</div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[800px]">
             <thead className="bg-zinc-50 dark:bg-zinc-900/50 text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
               <tr>
                 <th className="px-4 py-3 text-center w-10">
@@ -318,7 +319,7 @@ export default function EventosPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-center gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => setEventoSelecionado(e)}
                         className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 transition-colors"
@@ -349,16 +350,11 @@ export default function EventosPage() {
         </div>
       )}
 
-      {/* Paginação */}
-      {totalPaginas > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-4">
-          <button onClick={() => setPagina(Math.max(0, pagina - 1))} disabled={pagina === 0}
-            className="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors font-bold">←</button>
-          <span className="text-sm font-bold text-zinc-600 dark:text-zinc-400">{pagina + 1} / {totalPaginas}</span>
-          <button onClick={() => setPagina(Math.min(totalPaginas - 1, pagina + 1))} disabled={pagina >= totalPaginas - 1}
-            className="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 disabled:opacity-30 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors font-bold">→</button>
-        </div>
-      )}
+      <Pagination 
+        pagina={pagina} 
+        totalPaginas={totalPaginas} 
+        onPaginaChange={setPagina} 
+      />
 
       <EventDetailModal
         isOpen={!!eventoSelecionado}

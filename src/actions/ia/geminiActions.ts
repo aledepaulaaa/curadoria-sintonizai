@@ -68,15 +68,48 @@ const tools = [
   }
 ];
 
-export async function chatComGemini(mensagens: { role: 'user' | 'model', parts: { text: string }[] }[]): Promise<ActionResponse<string>> {
+export async function chatComGemini(
+  mensagens: { role: 'user' | 'model', parts: { text: string }[] }[],
+  imagem?: { data: string, mimeType: string }
+): Promise<ActionResponse<string>> {
   try {
     if (!process.env.GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
+    // Buscar filtros atuais para injetar na instrução
+    const filtrosSnap = await adminDb.collection('configuracoes_filtros').get();
+    let filtrosTexto = '';
+    filtrosSnap.forEach(doc => {
+      const data = doc.data();
+      filtrosTexto += `- ${data.label}: ${data.itens?.join(', ')}\n`;
+    });
+
+    const instruction = `
+Você é o Assistente de Curadoria do app Sintonizaí.
+Sua função é transformar informações brutas (texto ou imagens) em eventos estruturados.
+
+FILTROS ATUAIS DO SISTEMA (USE APENAS ESTES):
+${filtrosTexto || 'Nenhum filtro configurado no banco.'}
+
+REGRAS CRÍTICAS DE DADOS:
+1. "tipo_evento": Deve ser uma das categorias listadas acima.
+2. "estilo": OBRIGATÓRIO. Use os ritmos/estilos listados acima.
+3. "gratuito": boolean.
+4. "dataInicio": Formato ISO YYYY-MM-DD.
+
+SE O USUÁRIO ENVIAR UMA IMAGEM:
+- Analise o texto na imagem (print de rede social, cartaz, etc).
+- Extraia Nome, Data, Local e Descrição.
+- Se a imagem for de um evento recorrente sem data específica, peça a data ao usuário.
+
+FERRAMENTAS DISPONÍVEIS:
+- Use 'salvar_evento_no_firestore' somente quando tiver todos os campos obrigatórios validados.
+`;
+
     const model = genAI.getGenerativeModel({
       model: 'gemini-3-flash-preview',
-      systemInstruction: SYSTEM_INSTRUCTION,
+      systemInstruction: instruction,
       tools: tools as any
     });
 
@@ -84,8 +117,19 @@ export async function chatComGemini(mensagens: { role: 'user' | 'model', parts: 
       history: mensagens.slice(0, -1),
     });
 
-    const lastMessage = mensagens[mensagens.length - 1].parts[0].text;
-    const result = await chat.sendMessage(lastMessage);
+    // Se houver imagem, a última mensagem deve incluir a parte da imagem
+    let lastMessageParts: any[] = [{ text: mensagens[mensagens.length - 1].parts[0].text }];
+    
+    if (imagem) {
+      lastMessageParts.push({
+        inlineData: {
+          data: imagem.data,
+          mimeType: imagem.mimeType
+        }
+      });
+    }
+
+    const result = await chat.sendMessage(lastMessageParts);
     const response = await result.response;
 
     // Verificar se a IA quer chamar uma ferramenta
@@ -106,9 +150,9 @@ export async function chatComGemini(mensagens: { role: 'user' | 'model', parts: 
               const docRef = colRef.doc();
               batch.set(docRef, {
                 ...evento,
-                status: 'pendente', // Por segurança, entra como pendente para revisão humana se desejar
+                status: 'pendente',
                 criadoEm: new Date().toISOString(),
-                origem: 'IA_ASSISTANT'
+                origem: 'IA_ASSISTANT_VISION'
               });
             }
             
@@ -120,7 +164,6 @@ export async function chatComGemini(mensagens: { role: 'user' | 'model', parts: 
         }
       }
 
-      // Enviar os resultados das ferramentas de volta para a IA gerar a resposta final
       const finalResult = await chat.sendMessage([{ functionResponse: results[0] }] as any);
       return createSuccessResponse(finalResult.response.text());
     }

@@ -2,14 +2,12 @@
 
 import React from 'react';
 import { listarFiltros } from '@/src/actions/filtros/filtrosActions';
-import * as CONSTANTS from '@/src/constants/curadoria';
-
 export function useFiltros() {
   const [filtros, setFiltros] = React.useState<any>({
-    categorias: CONSTANTS.CATEGORIAS_EVENTO,
-    ritmos: CONSTANTS.RITMOS_MUSICA,
-    vibes: CONSTANTS.VIBES,
-    teatro: CONSTANTS.TIPOS_TEATRO
+    categorias: [],
+    ritmos: [],
+    vibes: [],
+    teatro: []
   });
   const [loading, setLoading] = React.useState(true);
 
@@ -24,7 +22,7 @@ export function useFiltros() {
               novosFiltros[f.id] = f.itens;
             }
           });
-          setFiltros((prev: any) => ({ ...prev, ...novosFiltros }));
+          setFiltros(novosFiltros);
         }
       } catch (e) {
         console.error('Erro ao carregar filtros dinâmicos:', e);

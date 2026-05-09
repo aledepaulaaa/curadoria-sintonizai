@@ -155,7 +155,7 @@ export default function FiltrosPage() {
                <div className="flex gap-2">
                  <button 
                    onClick={() => handleRemoveGroup(grupo.id)}
-                   className="w-10 h-10 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-xl flex items-center justify-center opacity-0 group-hover/card:opacity-100 hover:scale-105 transition-all"
+                   className="w-10 h-10 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-xl flex items-center justify-center md:opacity-0 md:group-hover/card:opacity-100 hover:scale-105 transition-all"
                  >
                    <Trash2 size={18} />
                  </button>

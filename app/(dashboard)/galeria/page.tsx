@@ -198,7 +198,7 @@ export default function GaleriaPage() {
                   )}
                   
                   {/* Overlay Seleção */}
-                  <div className={`absolute inset-0 bg-purple-900/40 transition-opacity duration-200 flex items-center justify-center ${selecionados.has(item.caminho) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  <div className={`absolute inset-0 bg-purple-900/40 transition-opacity duration-200 flex items-center justify-center ${selecionados.has(item.caminho) ? 'opacity-100' : 'md:opacity-0 md:group-hover:opacity-100 opacity-100'}`}>
                     <button 
                       onClick={() => toggleSelecionar(item.caminho)}
                       className="p-2 bg-white text-purple-600 rounded-xl shadow-lg transition-transform hover:scale-110"
