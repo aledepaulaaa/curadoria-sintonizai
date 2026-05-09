@@ -34,6 +34,13 @@ export default function GeminiChat() {
   const [sidebarAberta, setSidebarAberta] = React.useState(true);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
+  // Fechar sidebar automaticamente no mobile ao carregar
+  React.useEffect(() => {
+    if (window.innerWidth < 768) {
+      setSidebarAberta(false);
+    }
+  }, []);
+
   const [imagemAnexada, setImagemAnexada] = React.useState<{ data: string, mimeType: string, preview: string } | null>(null);
 
   const carregarConversas = React.useCallback(async () => {
@@ -61,7 +68,12 @@ export default function GeminiChat() {
 
   const handleSelecionarConversa = async (id: string) => {
     const c = await buscarConversaIA(id);
-    if (c) setConversaAtiva(c);
+    if (c) {
+      setConversaAtiva(c);
+      if (window.innerWidth < 768) {
+        setSidebarAberta(false);
+      }
+    }
   };
 
   const handleRenomear = async (id: string) => {
@@ -169,19 +181,28 @@ export default function GeminiChat() {
   };
 
   return (
-    <div className="flex h-[700px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xl overflow-hidden">
+    <div className="flex h-[700px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xl overflow-hidden relative">
       {/* Sidebar de Histórico */}
       <motion.div 
-        animate={{ width: sidebarAberta ? 300 : 0 }}
-        className="bg-zinc-50 dark:bg-zinc-900/50 border-r border-zinc-200 dark:border-zinc-800 flex flex-col overflow-hidden"
+        initial={false}
+        animate={{ 
+          width: sidebarAberta ? (window.innerWidth < 768 ? '100%' : 300) : 0,
+          opacity: sidebarAberta ? 1 : 0
+        }}
+        className={`bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col overflow-hidden absolute md:relative z-20 h-full shadow-2xl md:shadow-none`}
       >
-        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-900">
           <span className="text-xs font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
             <History size={14} /> Histórico
           </span>
-          <button onClick={handleNovaConversa} className="p-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors shadow-lg shadow-purple-500/20">
-            <Plus size={16} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={handleNovaConversa} className="p-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors shadow-lg shadow-purple-500/20">
+              <Plus size={16} />
+            </button>
+            <button onClick={() => setSidebarAberta(false)} className="md:hidden p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg text-zinc-500">
+              <X size={18} />
+            </button>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -227,8 +248,16 @@ export default function GeminiChat() {
         {/* Header */}
         <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarAberta(!sidebarAberta)} className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg text-zinc-500 transition-colors">
+            <button 
+              onClick={() => setSidebarAberta(!sidebarAberta)} 
+              className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${
+                sidebarAberta 
+                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600' 
+                  : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500'
+              }`}
+            >
               <History size={18} />
+              <span className="text-xs font-bold md:hidden">Histórico</span>
             </button>
             <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-purple-500/20">
               <Sparkles size={20} />
