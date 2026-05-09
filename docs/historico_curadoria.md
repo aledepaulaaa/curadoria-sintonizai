@@ -3,14 +3,14 @@
 ## [1.9] — 2026-05-09 — Responsividade Total e IA Vision
 ### ✨ Funcionalidades
 - **IA Vision (Gemini 1.5 Flash)**: O Chat agora suporta upload de imagens/prints para análise automática de eventos via IA.
-- **Paginação Mobile-First**: Novo componente de paginação centralizado, visível em todas as condições (mesmo com 1 página) para facilitar a verificação.
-- **Filtros Dinâmicos**: Eliminação total de filtros "hardcoded". O sistema agora consome categorias, ritmos e vibes diretamente do Firestore.
+- **Gemini Chat Mobile UX**: Implementada **Sidebar Retrátil** inteligente que se esconde no celular para dar foco total ao chat.
+- **Auto-Dismiss**: O histórico de conversas fecha automaticamente ao selecionar um item no mobile, otimizando o fluxo de trabalho.
+- **Paginação Mobile-First**: Novo componente de paginação centralizado e visível em todas as condições.
 
 ### 🛠️ Melhorias Técnicas
-- **Responsividade de Tabelas**: Implementado `min-width` e `overflow-x-auto` em todas as listagens (Eventos, Usuários e Importação).
-- **Ações no Mobile**: Botões de ação (Editar/Excluir) agora são visíveis por padrão em dispositivos touch, eliminando a dependência de hover.
-- **UI/UX**: Ordenação de tabelas atualizada com ícones de `Chevron` para maior clareza visual.
-- **Higiene de Segurança**: Limpeza do histórico do Git para remoção de credenciais expostas anteriormente.
+- **Responsividade de Tabelas**: Implementado `min-width` e `overflow-x-auto` em todas as listagens.
+- **Ações no Mobile**: Botões de ação (Editar/Excluir) visíveis por padrão em touch, sem dependência de hover.
+- **Segurança**: Sincronização do `assetlinks.json` com fingerprints oficiais e limpeza do histórico do Git.
 
 ## [1.8] — 2026-05-08 — Gestão de Usuários e Insights Demográficos
 ### ✨ Funcionalidades

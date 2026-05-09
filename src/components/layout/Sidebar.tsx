@@ -10,7 +10,9 @@ import {
   Megaphone, 
   Image as ImageIcon, 
   FileText,
-  Settings2
+  Settings2,
+  Tag,
+  Music
 } from 'lucide-react';
 import { useUIStore } from '@/src/store/uiStore';
 
@@ -19,6 +21,8 @@ const NAV_ITEMS = [
   { href: '/curadoria', label: 'Curadoria', icon: Sparkles },
   { href: '/eventos', label: 'Eventos', icon: Ticket },
   { href: '/usuarios', label: 'Usuários', icon: Users },
+  { href: '/categorias', label: 'Categorias', icon: Tag },
+  { href: '/estilos', label: 'Estilos', icon: Music },
   { href: '/filtros', label: 'Filtros', icon: Settings2 },
   { href: '/anuncios', label: 'Banners', icon: Megaphone },
   { href: '/galeria', label: 'Galeria', icon: ImageIcon },

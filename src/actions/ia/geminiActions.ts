@@ -77,34 +77,42 @@ export async function chatComGemini(
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
-    // Buscar filtros atuais para injetar na instrução
-    const filtrosSnap = await adminDb.collection('configuracoes_filtros').get();
-    let filtrosTexto = '';
-    filtrosSnap.forEach(doc => {
-      const data = doc.data();
-      filtrosTexto += `- ${data.label}: ${data.itens?.join(', ')}\n`;
-    });
+    // Buscar Categorias e Estilos atuais para injetar na instrução
+    const [catSnap, estSnap] = await Promise.all([
+      adminDb.collection('configuracoes_categorias').orderBy('ordem', 'asc').get(),
+      adminDb.collection('configuracoes_estilos').orderBy('ordem', 'asc').get()
+    ]);
+
+    let categoriasTexto = '';
+    catSnap.forEach(doc => categoriasTexto += `- ${doc.data().label}\n`);
+
+    let estilosTexto = '';
+    estSnap.forEach(doc => estilosTexto += `- ${doc.data().label}\n`);
 
     const instruction = `
 Você é o Assistente de Curadoria do app Sintonizaí.
-Sua função é transformar informações brutas (texto ou imagens) em eventos estruturados.
+Sua função é transformar informações brutas (texto ou imagens) em eventos estruturados de alta qualidade.
 
-FILTROS ATUAIS DO SISTEMA (USE APENAS ESTES):
-${filtrosTexto || 'Nenhum filtro configurado no banco.'}
+CATEGORIAS PERMITIDAS (USE APENAS ESTAS NO CAMPO "tipo_evento"):
+${categoriasTexto || 'Show, Festival, Teatro, Exposição, Cinema, Sarau, Infantil'}
+
+ESTILOS/RITMOS PERMITIDOS (USE APENAS ESTES NO CAMPO "estilo"):
+${estilosTexto || 'Samba, Rock, MPB, Jazz, Funk, Sertanejo, Pop'}
 
 REGRAS CRÍTICAS DE DADOS:
-1. "tipo_evento": Deve ser uma das categorias listadas acima.
-2. "estilo": OBRIGATÓRIO. Use os ritmos/estilos listados acima.
-3. "gratuito": boolean.
-4. "dataInicio": Formato ISO YYYY-MM-DD.
+1. "tipo_evento": OBRIGATÓRIO. Escolha a categoria mais adequada da lista acima.
+2. "estilo": OBRIGATÓRIO. Use um dos estilos listados acima. Se não houver match direto, escolha o mais próximo e pergunte ao usuário.
+3. "vibe": NÃO UTILIZE este campo. Ele foi descontinuado.
+4. "gratuito": boolean. Baseie-se no preço ou descrição.
+5. "dataInicio": Formato ISO YYYY-MM-DD.
 
 SE O USUÁRIO ENVIAR UMA IMAGEM:
 - Analise o texto na imagem (print de rede social, cartaz, etc).
 - Extraia Nome, Data, Local e Descrição.
-- Se a imagem for de um evento recorrente sem data específica, peça a data ao usuário.
+- Se for um evento recorrente sem data específica, peça a data ao usuário.
 
 FERRAMENTAS DISPONÍVEIS:
-- Use 'salvar_evento_no_firestore' somente quando tiver todos os campos obrigatórios validados.
+- Use 'salvar_evento_no_firestore' somente quando tiver todos os campos obrigatórios validados (Nome, Data, Local, Categoria, Estilo).
 `;
 
     const model = genAI.getGenerativeModel({

@@ -8,7 +8,8 @@ import {
   CheckCircle2, AlertTriangle, Sparkles, Loader2
 } from 'lucide-react';
 import { useEventos } from '@/src/hooks/useEventos';
-import { useFiltros } from '@/src/hooks/useFiltros';
+import { useCategorias } from '@/src/hooks/useCategorias';
+import { useEstilos } from '@/src/hooks/useEstilos';
 import ImageUpload from '../common/ImageUpload';
 import GallerySelector from './GallerySelector';
 import UserSelector from './UserSelector';
@@ -16,7 +17,8 @@ import { UserCheck } from 'lucide-react';
 
 export default function ManualCuradoria() {
   const { criar } = useEventos();
-  const { filtros, loading: loadingFiltros } = useFiltros();
+  const { categorias, loading: loadingCategorias } = useCategorias();
+  const { estilos, loading: loadingEstilos } = useEstilos();
   const [salvando, setSalvando] = React.useState(false);
   const [abrirGaleria, setAbrirGaleria] = React.useState(false);
   const [form, setForm] = React.useState({
@@ -27,7 +29,6 @@ export default function ManualCuradoria() {
     localNome: '',
     endereco: '',
     categoria: '',
-    vibe: '',
     estilo: '',
     gratuito: false,
     preco: '',
@@ -36,17 +37,16 @@ export default function ManualCuradoria() {
     indicadoPor: null as any,
   });
 
-  // Atualizar valores iniciais quando os filtros carregarem
+  // Atualizar valores iniciais quando carregarem
   React.useEffect(() => {
-    if (!loadingFiltros && filtros) {
+    if (!loadingCategorias && !loadingEstilos) {
       setForm(prev => ({
         ...prev,
-        categoria: prev.categoria || (filtros.categorias?.[0] || ''),
-        vibe: prev.vibe || (filtros.vibes?.[0] || ''),
-        estilo: prev.estilo || (filtros.ritmos?.[0] || ''),
+        categoria: prev.categoria || (categorias[0]?.label || ''),
+        estilo: prev.estilo || (estilos[0]?.label || ''),
       }));
     }
-  }, [loadingFiltros, filtros]);
+  }, [loadingCategorias, loadingEstilos, categorias, estilos]);
 
   const handleChange = (field: string, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -74,9 +74,8 @@ export default function ManualCuradoria() {
         horario: '',
         localNome: '',
         endereco: '',
-        categoria: filtros.categorias?.[0] || '',
-        vibe: filtros.vibes?.[0] || '',
-        estilo: filtros.ritmos?.[0] || '',
+        categoria: categorias[0]?.label || '',
+        estilo: estilos[0]?.label || '',
         gratuito: false,
         preco: '',
         linkIngresso: '',
@@ -131,23 +130,17 @@ export default function ManualCuradoria() {
                 <input value={form.localNome} onChange={e => handleChange('localNome', e.target.value)} className={inputCls} placeholder="Ex: Bar do Alemão" />
              </div>
 
-             <div className="grid grid-cols-3 gap-4">
+             <div className="grid grid-cols-2 gap-4">
                 <div>
                    <label className={labelCls}>Categoria</label>
                    <select value={form.categoria} onChange={e => handleChange('categoria', e.target.value)} className={inputCls}>
-                      {(filtros.categorias || []).map((c: string) => <option key={c} value={c}>{c}</option>)}
-                   </select>
-                </div>
-                <div>
-                   <label className={labelCls}>Vibe</label>
-                   <select value={form.vibe} onChange={e => handleChange('vibe', e.target.value)} className={inputCls}>
-                      {(filtros.vibes || []).map((v: string) => <option key={v} value={v}>{v}</option>)}
+                      {categorias.map((c: any) => <option key={c.id} value={c.label}>{c.label}</option>)}
                    </select>
                 </div>
                 <div>
                    <label className={labelCls}>Estilo/Ritmo</label>
                    <select value={form.estilo} onChange={e => handleChange('estilo', e.target.value)} className={inputCls}>
-                      {(filtros.ritmos || []).map((r: string) => <option key={r} value={r}>{r}</option>)}
+                      {estilos.map((e: any) => <option key={e.id} value={e.label}>{e.label}</option>)}
                    </select>
                 </div>
              </div>
@@ -219,10 +212,6 @@ export default function ManualCuradoria() {
                     <span className="text-[10px] font-bold uppercase tracking-widest">Sem Imagem</span>
                  </div>
                )}
-               {/* Badge Vibe */}
-               <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[10px] font-black text-purple-600 uppercase">
-                  {form.vibe}
-               </div>
             </div>
 
             {/* Conteúdo */}
