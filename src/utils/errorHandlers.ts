@@ -7,6 +7,7 @@ export interface ActionResponse<T = any> {
   data?: T;
   error?: string;
   code?: string;
+  metadata?: any;
 }
 
 export function handleActionError(error: any, context: string): ActionResponse {
@@ -36,6 +37,6 @@ export function handleActionError(error: any, context: string): ActionResponse {
   };
 }
 
-export function createSuccessResponse<T>(data: T): ActionResponse<T> {
-  return { success: true, data };
+export function createSuccessResponse<T>(data: T, metadata?: any): ActionResponse<T> {
+  return { success: true, data, metadata };
 }

@@ -13,7 +13,7 @@ import {
 import { 
   Send, Loader2, Bot, User, Sparkles, AlertCircle, 
   Plus, History, Edit3, Trash2, FileText, Paperclip, X,
-  Check
+  Check, ArrowRight, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
@@ -42,6 +42,8 @@ export default function GeminiChat() {
   }, []);
 
   const [imagemAnexada, setImagemAnexada] = React.useState<{ data: string, mimeType: string, preview: string } | null>(null);
+  const [propostaAjuste, setPropostaAjuste] = React.useState<any>(null);
+  const [statusIA, setStatusIA] = React.useState<string | null>(null);
 
   const carregarConversas = React.useCallback(async () => {
     const lista = await listarConversasIA();
@@ -131,6 +133,7 @@ export default function GeminiChat() {
     if (!file || !conversaAtiva) return;
 
     setLoading(true);
+    setStatusIA('Lendo arquivo...');
     try {
       const res = await processarArquivo(file);
       if (res.image) {
@@ -143,6 +146,7 @@ export default function GeminiChat() {
       setError(err);
     } finally {
       setLoading(false);
+      setStatusIA(null);
       e.target.value = ''; // Limpar input
     }
   };
@@ -160,6 +164,7 @@ export default function GeminiChat() {
     const imgParaEnviar = imagemAnexada;
     setImagemAnexada(null);
     setLoading(true);
+    setStatusIA('IA pensando...');
     setError(null);
 
     try {
@@ -170,6 +175,10 @@ export default function GeminiChat() {
         
         await atualizarConversaIA(conversaAtiva.id, { mensagens: finalMsgs });
         setConversaAtiva({ ...conversaAtiva, mensagens: finalMsgs });
+
+        if (response.metadata?.propostaAjuste) {
+          setPropostaAjuste(response.metadata.propostaAjuste);
+        }
       } else {
         setError(response.error || 'Falha na resposta da IA');
       }
@@ -177,6 +186,39 @@ export default function GeminiChat() {
       setError('Erro de conexão com o servidor');
     } finally {
       setLoading(false);
+      setStatusIA(null);
+    }
+  };
+
+  const handleConfirmarAjuste = async () => {
+    if (!propostaAjuste) return;
+    setLoading(true);
+    setStatusIA('Aplicando correções massivas...');
+    try {
+      const { aplicarAjusteMassivo } = await import('@/src/actions/eventos/bulkActions');
+      const res = await aplicarAjusteMassivo({
+        ids: propostaAjuste.eventos.map((e: any) => e.id),
+        campo: propostaAjuste.campo,
+        novoValor: propostaAjuste.novoValor
+      });
+
+      if (res.success) {
+        setPropostaAjuste(null);
+        // Adicionar mensagem de sucesso no chat
+        const msgSucesso: Message = { role: 'model', parts: [{ text: `✅ Sucesso! Ajustei ${res.data?.count} eventos para "${propostaAjuste.novoValor}" no campo "${propostaAjuste.campo}".` }] };
+        const finalMsgs = [...(conversaAtiva?.mensagens || []), msgSucesso];
+        if (conversaAtiva) {
+          await atualizarConversaIA(conversaAtiva.id, { mensagens: finalMsgs });
+          setConversaAtiva({ ...conversaAtiva, mensagens: finalMsgs });
+        }
+      } else {
+        setError('Erro ao aplicar ajuste: ' + res.error);
+      }
+    } catch (e) {
+      setError('Falha crítica ao aplicar ajuste');
+    } finally {
+      setLoading(false);
+      setStatusIA(null);
     }
   };
 
@@ -339,10 +381,13 @@ export default function GeminiChat() {
                   <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                      <Loader2 size={16} className="animate-spin" />
                   </div>
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex gap-1">
-                     <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" />
-                     <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                     <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex flex-col gap-2">
+                     <div className="flex gap-1">
+                        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" />
+                        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                     </div>
+                     {statusIA && <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest animate-pulse">{statusIA}</span>}
                   </div>
                </div>
             </div>
@@ -408,6 +453,89 @@ export default function GeminiChat() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Proposta de Ajuste Massivo */}
+      <AnimatePresence>
+        {propostaAjuste && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-purple-600 text-white">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <Zap size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Proposta de Ajuste Massivo</h2>
+                    <p className="text-sm text-purple-100 font-medium">A IA identificou {propostaAjuste.eventos.length} eventos para corrigir</p>
+                  </div>
+                </div>
+                <button onClick={() => setPropostaAjuste(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                <div className="bg-zinc-50 dark:bg-zinc-800/50 p-6 rounded-3xl border border-zinc-100 dark:border-zinc-800">
+                  <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <Sparkles size={14} /> Justificativa da IA
+                  </h4>
+                  <p className="text-sm text-zinc-700 dark:text-zinc-300 font-medium leading-relaxed italic">
+                    "{propostaAjuste.justificativa}"
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between px-2 mb-2">
+                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Eventos Selecionados</span>
+                    <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-full">
+                      Campo: {propostaAjuste.campo}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {propostaAjuste.eventos.map((ev: any) => (
+                      <div key={ev.id} className="p-4 bg-white dark:bg-zinc-800/30 border border-zinc-100 dark:border-zinc-800 rounded-2xl flex items-center justify-between group hover:border-purple-200 dark:hover:border-purple-900/30 transition-colors">
+                        <div className="flex-1 min-w-0 pr-4">
+                          <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">{ev.nome}</p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-xs font-medium text-zinc-400 line-through">{ev.antigo || 'vazio'}</span>
+                          <ArrowRight size={14} className="text-purple-400" />
+                          <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-3 py-1 rounded-lg">
+                            {ev.novo}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800 flex gap-4">
+                <button 
+                  onClick={() => setPropostaAjuste(null)}
+                  className="flex-1 py-4 px-6 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 font-bold rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleConfirmarAjuste}
+                  disabled={loading}
+                  className="flex-1 py-4 px-6 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 shadow-xl shadow-purple-500/20 transition-all flex items-center justify-center gap-2"
+                >
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                  Confirmar Ajustes
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -38,6 +38,10 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
     indicadoPor: inicial?.indicadoPor || null as any,
   });
 
+  const tiposAchatados = React.useMemo(() => {
+    return Array.from(new Set(tiposEvento.flatMap((t: any) => t.itens || []))).sort();
+  }, [tiposEvento]);
+
   // Inicializar campos se vazios quando os metadados carregarem
   React.useEffect(() => {
     if (!loadingCategorias && !loadingEstilos && !loadingTipos) {
@@ -45,10 +49,10 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
         ...prev,
         categoria: prev.categoria || (categorias[0]?.label || ''),
         estilo: prev.estilo || (estilos[0]?.label || ''),
-        tipo_evento: prev.tipo_evento || (tiposEvento[0]?.label || ''),
+        tipo_evento: prev.tipo_evento || (tiposAchatados[0] || ''),
       }));
     }
-  }, [loadingCategorias, loadingEstilos, loadingTipos, categorias, estilos, tiposEvento]);
+  }, [loadingCategorias, loadingEstilos, loadingTipos, categorias, estilos, tiposAchatados]);
 
   const [salvando, setSalvando] = React.useState(false);
   const [abrirGaleria, setAbrirGaleria] = React.useState(false);
@@ -84,7 +88,7 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
       } as any);
       if (!inicial) {
         setForm({ nome: '', descricao: '', dataInicio: '', horario: '', localNome: '', endereco: '',
-          categoria: categorias[0]?.label || '', estilo: estilos[0]?.label || '', tipo_evento: tiposEvento[0]?.label || '', gratuito: false, preco: '', linkIngresso: '', imagemUrl: '', indicadoPor: null });
+          categoria: categorias[0]?.label || '', estilo: estilos[0]?.label || '', tipo_evento: tiposAchatados[0] || '', gratuito: false, preco: '', linkIngresso: '', imagemUrl: '', indicadoPor: null });
       }
     } finally {
       setSalvando(false);
@@ -120,13 +124,15 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
           <div>
             <label className={labelCls}>Categoria</label>
             <select value={form.categoria} onChange={(e) => handleChange('categoria', e.target.value)} className={inputCls}>
+              <option value="">Selecione uma categoria</option>
               {categorias.map((c: any) => <option key={c.id} value={c.label}>{c.label}</option>)}
             </select>
           </div>
           <div>
             <label className={labelCls}>Tipo de Evento</label>
             <select value={form.tipo_evento} onChange={(e) => handleChange('tipo_evento', e.target.value)} className={inputCls}>
-              {tiposEvento.map((t: any) => <option key={t.id} value={t.label}>{t.label}</option>)}
+              <option value="">Selecione o tipo</option>
+              {tiposAchatados.map((t: string) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
         </div>

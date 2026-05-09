@@ -34,11 +34,21 @@ export default function FiltrosPage() {
   React.useEffect(() => { carregar(); }, [carregar]);
 
   const handleAddItem = (grupoId: string) => {
-    const nome = prompt('Nome do novo item:');
+    let nome = prompt('Nome do novo item:');
     if (!nome) return;
-    setFiltros(prev => prev.map(g => 
-      g.id === grupoId ? { ...g, itens: [...g.itens, nome] } : g
-    ));
+    nome = nome.trim();
+    if (!nome) return;
+
+    setFiltros(prev => prev.map(g => {
+      if (g.id === grupoId) {
+        if (g.itens?.some((i: string) => i.trim().toLowerCase() === nome?.toLowerCase())) {
+          alert('Este item já existe neste grupo!');
+          return g;
+        }
+        return { ...g, itens: [...(g.itens || []), nome] };
+      }
+      return g;
+    }));
     setEditados(prev => new Set(prev).add(grupoId));
   };
 
@@ -91,6 +101,10 @@ export default function FiltrosPage() {
     setSalvando(grupo.id);
     try {
       const { id, ...data } = grupo;
+      // Sanitizar dados antes de salvar
+      if (data.itens) {
+        data.itens = Array.from(new Set(data.itens.map((i: string) => i.trim()))).filter(Boolean);
+      }
       await salvarTipoEvento(id, data);
       setEditados(prev => {
         const novo = new Set(prev);

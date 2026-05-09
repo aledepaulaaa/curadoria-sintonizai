@@ -6,33 +6,42 @@ import { adminDb } from '@/src/services/firebaseAdmin';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-const SYSTEM_INSTRUCTION = `
-Você é o Assistente de Curadoria do app Sintonizaí.
-Sua função é transformar informações brutas em eventos estruturados de alta qualidade.
-
-REGRAS CRÍTICAS DE DADOS:
-1. "tipo_evento": Escolha o mais adequado: Show, Festival, Teatro, Exposição, Cinema, Sarau, Feira, Workshop, Stand-up, Infantil, Outros.
-2. "estilo": OBRIGATÓRIO. Se o usuário esquecer, você DEVE analisar a descrição, sugerir um estilo (ex: Samba, Rock, MPB, Eletrônico) e perguntar: "Notei que faltou o estilo, sugeri 'Samba' com base no nome/descrição. Podemos seguir assim?".
-3. "gratuito": boolean. Se o preço for R$ 0 ou contiver "Grátis", marque como true.
-4. "dataInicio": Use o formato ISO YYYY-MM-DD.
-
-PROATIVIDADE E INTERAÇÃO:
-- Se faltar qualquer propriedade essencial (nome, dataInicio, local, tipo_evento, estilo), NÃO chame a ferramenta 'salvar_evento_no_firestore' imediatamente. Em vez disso, peça ao usuário para completar a informação ou confirme sua sugestão.
-- Sempre que salvar, avise que os eventos entraram como "Pendentes" para revisão final na Dashboard.
-
-FERRAMENTAS DISPONÍVEIS:
-- Use 'salvar_evento_no_firestore' somente quando tiver todos os campos obrigatórios validados com o usuário.
-`;
-
 /**
- * Ferramenta que a IA pode chamar para salvar no banco
+ * Ferramentas que a IA pode chamar
  */
 const tools = [
   {
     functionDeclarations: [
       {
+        name: 'buscar_eventos',
+        description: 'Busca eventos no banco de dados com filtros opcionais.',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Termo de busca no nome ou descrição' },
+            tipo_evento: { type: 'string' },
+            categoria: { type: 'string' },
+            status: { type: 'string', enum: ['pendente', 'aprovado', 'arquivado'] }
+          }
+        }
+      },
+      {
+        name: 'propor_ajuste_massivo',
+        description: 'Propõe uma alteração em massa para um conjunto de eventos. Retorna a proposta para confirmação do usuário.',
+        parameters: {
+          type: 'object',
+          properties: {
+            ids: { type: 'array', items: { type: 'string' }, description: 'Lista de IDs dos eventos a serem alterados' },
+            campo: { type: 'string', description: 'Nome do campo a ser alterado (ex: tipo_evento, categoria, estilo)' },
+            novoValor: { type: 'string', description: 'O novo valor a ser aplicado' },
+            justificativa: { type: 'string', description: 'Por que este ajuste é necessário?' }
+          },
+          required: ['ids', 'campo', 'novoValor']
+        }
+      },
+      {
         name: 'salvar_evento_no_firestore',
-        description: 'Salva um ou mais eventos no banco de dados Firestore do Sintonizaí.',
+        description: 'Salva um ou mais eventos novos no banco de dados.',
         parameters: {
           type: 'object',
           properties: {
@@ -45,37 +54,20 @@ const tools = [
                   descricao: { type: 'string' },
                   dataInicio: { type: 'string', description: 'Formato YYYY-MM-DD' },
                   horario: { type: 'string' },
-                  local: { 
-                    type: 'object', 
-                    properties: { nome: { type: 'string' } }
-                  },
+                  local: { type: 'object', properties: { nome: { type: 'string' } } },
                   endereco: { type: 'string' },
-                  tipo_evento: { type: 'string', description: 'Tipo do evento (Música, Teatro, etc)' },
-                  categoria: { type: 'string', description: 'Categoria principal' },
-                  estilo_ritmo: { type: 'string', description: 'Gênero musical ou detalhamento cultural' },
+                  tipo_evento: { type: 'string' },
+                  categoria: { type: 'string' },
+                  estilo: { type: 'string' },
                   gratuito: { type: 'boolean' },
                   preco: { type: 'string' },
-                  linkIngresso: { type: 'string' },
-                  imagemUrl: { type: 'string' }
+                  linkIngresso: { type: 'string' }
                 },
-                required: ['nome', 'dataInicio', 'local', 'tipo_evento', 'categoria', 'estilo_ritmo']
+                required: ['nome', 'dataInicio', 'local', 'tipo_evento', 'categoria']
               }
             }
           },
           required: ['eventos']
-        }
-      },
-      {
-        name: 'verificar_duplicado',
-        description: 'Verifica se já existe um evento com o mesmo nome na mesma data e horário no banco de dados.',
-        parameters: {
-          type: 'object',
-          properties: {
-            nome: { type: 'string' },
-            dataInicio: { type: 'string', description: 'Formato YYYY-MM-DD' },
-            horario: { type: 'string' }
-          },
-          required: ['nome', 'dataInicio']
         }
       }
     ]
@@ -85,65 +77,54 @@ const tools = [
 export async function chatComGemini(
   mensagens: { role: 'user' | 'model', parts: { text: string }[] }[],
   imagem?: { data: string, mimeType: string }
-): Promise<ActionResponse<string>> {
+): Promise<ActionResponse<any>> {
   try {
     if (!process.env.GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
-    // Buscar Categorias, Estilos e Tipos de Eventos atuais para injetar na instrução
+    // Buscar Metadados Atuais
     const [catSnap, estSnap, tipSnap] = await Promise.all([
       adminDb.collection('configuracoes_categorias').orderBy('ordem', 'asc').get(),
       adminDb.collection('configuracoes_estilos').orderBy('ordem', 'asc').get(),
       adminDb.collection('configuracoes_tipo_evento').orderBy('ordem', 'asc').get()
     ]);
 
-    let categoriasTexto = '';
-    catSnap.forEach(doc => categoriasTexto += `- ${doc.data().label}\n`);
-
-    let estilosTexto = '';
-    estSnap.forEach(doc => estilosTexto += `- ${doc.data().label}\n`);
-
-    let tiposTexto = '';
-    tipSnap.forEach(doc => tiposTexto += `- ${doc.data().label}\n`);
+    let categoriasTexto = catSnap.docs.map(d => `- ${d.data().label}`).join('\n');
+    let estilosTexto = estSnap.docs.map(d => `- ${d.data().label}`).join('\n');
+    let tiposTexto = tipSnap.docs.map(d => {
+      const data = d.data();
+      return `- [Grupo: ${data.label}]: ${(data.itens || []).join(', ')}`;
+    }).join('\n');
 
     const instruction = `
-Você é o Assistente de Curadoria do app Sintonizaí.
-Sua função é transformar informações brutas (texto ou imagens) em eventos estruturados de alta qualidade.
+Você é o Copiloto de Curadoria do app Sintonizaí.
+Sua missão é ajudar o curador a manter o banco de dados organizado e de alta qualidade.
 
-CATEGORIAS PERMITIDAS (Campo "categoria"):
-${categoriasTexto || 'Show, Teatro, Exposição, Cinema, Gastronomia'}
+CAPACIDADES ESPECIAIS:
+1. BUSCA: Você pode pesquisar eventos existentes usando 'buscar_eventos'. Use isso para ver quais eventos precisam de correção.
+2. AJUSTE MASSIVO: Se o curador pedir para mudar algo em muitos eventos (ex: "Mude todos os 'Música' para 'Show'"), use 'propor_ajuste_massivo'.
+   - O campo "estilo" no Firestore corresponde ao que o usuário chama de "Estilo Musical" ou "Ritmo".
+   - O campo "tipo_evento" deve vir de um dos itens listados abaixo.
 
-ESTILOS/RITMOS PERMITIDOS (Campo "estilo_ritmo"):
-${estilosTexto || 'Samba, Rock, MPB, Jazz, Funk'}
+VALORES VÁLIDOS (Use EXATAMENTE estes nomes):
+CATEGORIAS:
+${categoriasTexto}
 
-TIPOS DE EVENTOS PERMITIDOS (Campo "tipo_evento"):
-${tiposTexto || 'Música, Teatro, Dança, Literatura, Artes Visuais'}
+ESTILOS/RITMOS:
+${estilosTexto}
 
-REGRAS CRÍTICAS DE DADOS:
-1. "categoria": OBRIGATÓRIO. Escolha a categoria mais adequada da lista acima.
-2. "estilo_ritmo": OBRIGATÓRIO. Use um dos estilos listados acima.
-3. "tipo_evento": OBRIGATÓRIO. Use um dos tipos de eventos listados acima.
-4. "vibe": PROIBIDO. Este campo foi descontinuado e não deve ser preenchido.
-5. "gratuito": boolean. Baseie-se no preço ou descrição.
-6. "dataInicio": Formato ISO YYYY-MM-DD.
+TIPOS DE EVENTOS (Organizados por grupos):
+${tiposTexto}
 
-VERIFICAÇÃO DE DUPLICATAS:
-- ANTES de chamar 'salvar_evento_no_firestore', você DEVE SEMPRE usar 'verificar_duplicado' para cada evento que deseja criar.
-- Se o evento já existir, informe ao usuário que o evento já está cadastrado, mostre os detalhes do evento existente e o ID dele (que será retornado pela ferramenta).
-- NÃO tente criar um evento que você já sabe que é duplicado.
-
-SE O USUÁRIO ENVIAR UMA IMAGEM:
-- Analise o texto na imagem (print de rede social, cartaz, etc).
-- Extraia Nome, Data, Local e Descrição.
-
-FERRAMENTAS DISPONÍVEIS:
-- Use 'verificar_duplicado' para garantir integridade.
-- Use 'salvar_evento_no_firestore' somente quando tiver todos os campos obrigatórios validados e souber que o evento é novo.
+REGRAS:
+- Ao propor ajuste massivo, sempre explique o porquê.
+- Se o curador for vago (ex: "arruma os tipos"), primeiro busque os eventos ('buscar_eventos') para entender o que está errado e depois proponha o ajuste.
+- SEMPRE valide se o novo valor existe nas listas acima.
 `;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash',
       systemInstruction: instruction,
       tools: tools as any
     });
@@ -152,85 +133,83 @@ FERRAMENTAS DISPONÍVEIS:
       history: mensagens.slice(0, -1),
     });
 
-    // Se houver imagem, a última mensagem deve incluir a parte da imagem
     let lastMessageParts: any[] = [{ text: mensagens[mensagens.length - 1].parts[0].text }];
-    
     if (imagem) {
-      lastMessageParts.push({
-        inlineData: {
-          data: imagem.data,
-          mimeType: imagem.mimeType
-        }
-      });
+      lastMessageParts.push({ inlineData: { data: imagem.data, mimeType: imagem.mimeType } });
     }
 
     const result = await chat.sendMessage(lastMessageParts);
     const response = await result.response;
-
-    // Verificar se a IA quer chamar uma ferramenta
     const calls = response.candidates?.[0]?.content?.parts?.filter(p => p.functionCall);
 
     if (calls && calls.length > 0) {
       const results = [];
-      
+      let propostaAjuste = null;
+
       for (const call of calls) {
-        if (call.functionCall?.name === 'salvar_evento_no_firestore') {
-          const { eventos } = call.functionCall.args as any;
+        const { name, args } = call.functionCall as any;
+
+        if (name === 'buscar_eventos') {
+          const { query, tipo_evento, categoria, status } = args;
+          let ref: any = adminDb.collection('eventos');
           
-          try {
-            const batch = adminDb.batch();
-            const colRef = adminDb.collection('eventos');
-            
-            for (const evento of eventos) {
-              const docRef = colRef.doc();
-              const { estilo_ritmo, ...rest } = evento;
-              batch.set(docRef, {
-                ...rest,
-                estilo: estilo_ritmo,
-                status: 'pendente',
-                criadoEm: new Date().toISOString(),
-                origem: 'IA_ASSISTANT_VISION'
-              });
-            }
-            
-            await batch.commit();
-            results.push({ name: call.functionCall.name, response: { success: true, count: eventos.length } });
-          } catch (e: any) {
-            results.push({ name: call.functionCall.name, response: { success: false, error: e.message } });
+          if (query) {
+             // Firestore doesn't support full text search well here, 
+             // but we can at least filter by other fields if provided.
           }
+          
+          if (tipo_evento) ref = ref.where('tipo_evento', '==', tipo_evento);
+          if (categoria) ref = ref.where('categoria', '==', categoria);
+          if (status) ref = ref.where('status', '==', status);
+          
+          const snap = await ref.limit(50).get();
+          const eventos = snap.docs.map((d: any) => ({ 
+            id: d.id, 
+            nome: d.data().nome, 
+            tipo_evento: d.data().tipo_evento, 
+            categoria: d.data().categoria 
+          }));
+          
+          results.push({ name, response: { success: true, count: eventos.length, eventos } });
         }
 
-        if (call.functionCall?.name === 'verificar_duplicado') {
-          const { nome, dataInicio, horario } = call.functionCall.args as any;
-          
-          try {
-            const snap = await adminDb.collection('eventos').where('nome', '==', nome).get();
-            const dia = dataInicio.split('T')[0];
-            const duplicado = snap.docs.find(doc => {
-              const d = doc.data();
-              return d.dataInicio?.split('T')[0] === dia && d.horario === (horario || d.horario);
-            });
+        if (name === 'propor_ajuste_massivo') {
+          const { ids, campo, novoValor, justificativa } = args;
+          // Buscar dados atuais para a prévia
+          const snap = await adminDb.collection('eventos').where('__name__', 'in', ids).get();
+          const preview = snap.docs.map(d => ({
+            id: d.id,
+            nome: d.data().nome,
+            antigo: d.data()[campo],
+            novo: novoValor
+          }));
 
-            if (duplicado) {
-              results.push({ 
-                name: call.functionCall.name, 
-                response: { 
-                  duplicado: true, 
-                  id: duplicado.id, 
-                  detalhes: duplicado.data() 
-                } 
-              });
-            } else {
-              results.push({ name: call.functionCall.name, response: { duplicado: false } });
-            }
-          } catch (e: any) {
-            results.push({ name: call.functionCall.name, response: { success: false, error: e.message } });
-          }
+          propostaAjuste = { eventos: preview, campo, novoValor, justificativa };
+          results.push({ name, response: { success: true, message: 'Proposta gerada. Aguardando confirmação do usuário.' } });
+        }
+
+        if (name === 'salvar_evento_no_firestore') {
+          const { eventos } = args;
+          const batch = adminDb.batch();
+          const colRef = adminDb.collection('eventos');
+          eventos.forEach((ev: any) => {
+            const docRef = colRef.doc();
+            batch.set(docRef, { 
+              ...ev, 
+              status: 'pendente', 
+              criadoEm: new Date().toISOString(), 
+              origem: 'IA_ASSISTANT' 
+            });
+          });
+          await batch.commit();
+          results.push({ name, response: { success: true, count: eventos.length } });
         }
       }
 
       const finalResult = await chat.sendMessage([{ functionResponse: results[0] }] as any);
-      return createSuccessResponse(finalResult.response.text());
+      const text = finalResult.response.text();
+
+      return createSuccessResponse(text, { propostaAjuste } as any);
     }
 
     return createSuccessResponse(response.text());

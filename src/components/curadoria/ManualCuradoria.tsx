@@ -40,6 +40,17 @@ export default function ManualCuradoria() {
     indicadoPor: null as any,
   });
 
+  // Achatando os tipos de evento para seleção granular
+  const tiposAchatados = React.useMemo(() => {
+    const list: string[] = [];
+    tiposEvento.forEach((grupo: any) => {
+      if (grupo.itens && Array.isArray(grupo.itens)) {
+        grupo.itens.forEach((item: string) => list.push(item));
+      }
+    });
+    return list.sort();
+  }, [tiposEvento]);
+
   // Atualizar valores iniciais quando carregarem
   React.useEffect(() => {
     if (!loadingCategorias && !loadingEstilos && !loadingTipos) {
@@ -47,10 +58,10 @@ export default function ManualCuradoria() {
         ...prev,
         categoria: prev.categoria || (categorias[0]?.label || ''),
         estilo: prev.estilo || (estilos[0]?.label || ''),
-        tipo_evento: prev.tipo_evento || (tiposEvento[0]?.label || ''),
+        tipo_evento: prev.tipo_evento || (tiposAchatados[0] || ''),
       }));
     }
-  }, [loadingCategorias, loadingEstilos, loadingTipos, categorias, estilos, tiposEvento]);
+  }, [loadingCategorias, loadingEstilos, loadingTipos, categorias, estilos, tiposAchatados]);
 
   const handleChange = (field: string, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -79,7 +90,7 @@ export default function ManualCuradoria() {
         endereco: '',
         categoria: categorias[0]?.label || '',
         estilo: estilos[0]?.label || '',
-        tipo_evento: tiposEvento[0]?.label || '',
+        tipo_evento: tiposAchatados[0] || '',
         gratuito: false,
         preco: '',
         linkIngresso: '',
@@ -150,7 +161,8 @@ export default function ManualCuradoria() {
                 <div>
                    <label className={labelCls}>Tipo de Evento</label>
                    <select value={form.tipo_evento} onChange={e => handleChange('tipo_evento', e.target.value)} className={inputCls}>
-                      {tiposEvento.map((t: any) => <option key={t.id} value={t.label}>{t.label}</option>)}
+                      <option value="">Selecione o Tipo</option>
+                      {tiposAchatados.map((t: string) => <option key={t} value={t}>{t}</option>)}
                    </select>
                 </div>
              </div>
