@@ -129,8 +129,10 @@ REGRAS DE VALIDAÇÃO (CRÍTICO):
    - A Categoria deve existir na lista abaixo.
    - O Tipo de Evento deve pertencer à Categoria escolhida.
    - O Estilo deve pertencer ao Tipo de Evento escolhido.
-5. IMAGENS: Se o usuário enviar um link (URL) de um site, rede social ou imagem, utilize 'extrair_info_url' para obter a imagem (og:image).
-   - IMPORTANTE: Se o link da imagem for inválido ou inacessível, deixe 'imagemUrl' vazio e AVISE o curador sobre o problema técnico, mas prossiga com a inserção dos outros dados se estiverem corretos.
+5. INTEGRIDADE DE DADOS E VALORES:
+   - NÃO ADIVINHE OU ESTIME HORÁRIOS/PREÇOS: Se a fonte original indicar "Confirmar no link", "A confirmar" ou algo incerto, você DEVE manter exatamente esse texto no JSON. NUNCA tente estimar (ex: 23:59 ou 10:00) para "satisfazer" o formato.
+   - Campos Obrigatórios com Incerteza: Se um campo obrigatório (como data) for totalmente desconhecido, avise o usuário. Para horários e preços, o texto "Confirmar no link" é perfeitamente aceitável e preferível a uma estimativa errada.
+   - Links de Imagem: Se o link da imagem estiver quebrado ou for inacessível, deixe o campo imagemUrl vazio ("") e informe o motivo.
 
 ESTRUTURA JSON ESPERADA (Exemplo):
 {
@@ -234,19 +236,51 @@ FLUXO DE TRABALHO:
 
         if (name === 'salvar_evento_no_firestore') {
           const { eventos } = args;
-          const batch = adminDb.batch();
           const colRef = adminDb.collection('eventos');
-          eventos.forEach((ev: any) => {
-            const docRef = colRef.doc();
-            batch.set(docRef, { 
-              ...ev, 
-              status: 'pendente', 
-              criadoEm: new Date().toISOString(), 
-              origem: 'IA_ASSISTANT' 
+          let adicionados = 0;
+          let duplicados = 0;
+
+          // Processamento sequencial para checar duplicidade robusta
+          for (const ev of eventos) {
+            // Busca básica por nome para filtrar no cliente (mais resiliente a falta de índices compostos)
+            const querySnap = await colRef
+              .where('nome', '==', ev.nome)
+              .get();
+
+            const diaNovo = ev.dataInicio?.split('T')[0];
+            
+            const jaExiste = querySnap.docs.some(doc => {
+              const d = doc.data();
+              const dataMatch = d.dataInicio?.split('T')[0] === diaNovo;
+              const horarioMatch = d.horario === ev.horario;
+              const categoriaMatch = d.categoria === ev.categoria;
+              const tipoMatch = d.tipo_evento === ev.tipo_evento;
+              const estiloMatch = d.estilo === ev.estilo;
+              return dataMatch && horarioMatch && categoriaMatch && tipoMatch && estiloMatch;
             });
+
+            if (!jaExiste) {
+              await colRef.add({
+                ...ev,
+                status: 'pendente',
+                criadoEm: new Date().toISOString(),
+                origem: 'IA_ASSISTANT'
+              });
+              adicionados++;
+            } else {
+              duplicados++;
+            }
+          }
+
+          results.push({ 
+            name, 
+            response: { 
+              success: true, 
+              count: adicionados, 
+              skipped: duplicados,
+              message: `${adicionados} eventos novos salvos, ${duplicados} ignorados por já existirem.` 
+            } 
           });
-          await batch.commit();
-          results.push({ name, response: { success: true, count: eventos.length } });
         }
 
         if (name === 'extrair_info_url') {

@@ -1,8 +1,9 @@
-# Mapa Arquitetural — Curadoria Sintonizaí
+# Mapa Curadoria Sintonizaí - v2.4
 
-## Visão Geral
-
-Painel CMS web para curadoria de eventos do Sintonizaí. Atua como fonte de verdade para a coleção `eventos` do Firestore, compartilhada com o app mobile.
+## 🧠 Inteligência & Ingestão
+- **Gemini Chat**: Copiloto para análise de links, extração de metadados e salvamento inteligente (Proibição de estimativas e checagem de duplicidade).
+- **Taxonomia Hierárquica**: Gestão 3 níveis (Categoria > Tipo > Estilo) em cascata.
+ a coleção `eventos` do Firestore, compartilhada com o app mobile.
 
 ## Diagrama de Fluxo
 
