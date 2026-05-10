@@ -1,5 +1,20 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [2.3] — 2026-05-10 — Taxonomia Hierárquica e Qualidade IA
+### ✨ Funcionalidades
+- **Taxonomia em Cascata (3 Níveis)**: Implementação definitiva da hierarquia **Categoria > Tipo de Evento > Estilo**. O sistema agora força a classificação correta em todo o ecossistema.
+- **Smart Chat Input (UX)**: Refatorado o campo de entrada da IA para suporte a múltiplas linhas. Implementada lógica de `Shift + Enter` para quebras de linha no desktop e suporte nativo a `Enter` multiline no mobile.
+- **Modal de Exemplo JSON**: Adicionado guia visual no Chat IA com modelo de dados oficial, descrições de campos e funcionalidade de "Copiar para Clipboard".
+- **Inteligência de Imagem IA**: O assistente Gemini agora possui lógica de contingência; tenta extrair a imagem via URL, mas se houver erro, prossegue com o cadastro e emite um alerta técnico para o curador.
+- **Auditoria de Qualidade Visual**: Tabela de eventos atualizada com selos de status dinâmicos. Novo selo **"Taxonomia"** identifica eventos sem classificação completa.
+- **KPI de Taxonomia**: Adicionado novo indicador no dashboard de eventos e filtro de qualidade específico para auditoria de classificação.
+
+### 🛠️ Melhorias Técnicas
+- **Cascading Selects**: Refatoração do `ManualCuradoria.tsx` para suporte a dependência de dados (Categoria filtra Tipos, que filtram Estilos).
+- **Server Action `buscarInsights`**: Lógica de agrupamento por categoria atualizada para respeitar a nova hierarquia e reportar falhas de classificação.
+- **System Instructions (Gemini)**: Atualização massiva do prompt da IA para incluir regras de cascata, estrutura JSON oficial e fluxo de reporte de erro de imagem.
+- **Verificação de Duplicidade 2.0**: O motor de busca de duplicados agora valida o conjunto Nome + Data + Categoria + Tipo + Estilo.
+
 ## [2.2] — 2026-05-09 — IA Copilot e Automação Massiva
 ### ✨ Funcionalidades
 - **IA Copilot (Evolução)**: O Assistente Gemini agora atua como um Copiloto proativo, capaz de buscar eventos, propor correções e realizar ajustes massivos com supervisão humana.

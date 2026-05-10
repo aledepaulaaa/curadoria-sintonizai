@@ -53,29 +53,28 @@ Painel CMS web para curadoria de eventos do Sintonizaí. Atua como fonte de verd
 ## Ecossistema Dinâmico
 - [x] **Integridade de Dados**: Implementada trava de duplicidade (Nome + Data + Horário) na criação manual e via IA.
 - [x] **Filtros Avançados**: Adicionada filtragem por coluna com popovers (Nome, Local, Tipo, Data, Status).
-- [x] **Taxonomia Pro**: Remoção definitiva do campo "Vibe" e sincronização total de 3 níveis (Tipo, Categoria, Estilo).
-- [x] **UX Mobile**: Tabelas de Eventos e Usuários otimizadas para visibilidade total em smartphones.
-- **Upload Múltiplo (Lote)**: Galeria de mídia com suporte a upload de até 20 arquivos simultâneos, reduzindo o tempo de gestão de ativos.
+- [x] **Taxonomia Hierárquica**: Implementação total de 3 níveis (**Categoria > Tipo > Estilo**) com seletores em cascata no modo manual e validação estrita no modo IA.
+- [x] **Auditoria de Qualidade**: Sistema de selos visuais e filtros de integridade (Taxonomia, Imagem, Conteúdo) na listagem de eventos.
+- [x] **Dashboard 2.0**: Gráficos e KPIs que reportam falhas de taxonomia e distribuição real por categoria.
 
 ## Inteligência e Automação
-- **IA Agente 2.1**: O Agente Gemini utiliza *Function Calling* para persistir eventos seguindo rigorosamente a taxonomia de 3 níveis. Agora conta com ferramenta de verificação de duplicatas antes do salvamento.
-- **Filtros Cirúrgicos**: Sistema de filtros por coluna na listagem de eventos, permitindo buscas case-sensitive em "Tipo" e inputs rápidos via popovers.
-- **Integridade 360°**: Validação no servidor impede a criação de eventos idênticos (mesmo nome, data e hora).
-- **Gestão Demográfica**: Dashboard com análise de idade média e gestão completa de perfis de usuários.
+- **IA Agente 2.3**: O Agente Gemini possui agora lógica de contingência para falhas de imagem (ignora erro e avisa o usuário) e segue rigorosamente a taxonomia em cascata.
+- **Auxílio ao Curador**: Modal "Exemplo JSON" integrado ao chat para padronização imediata do input de dados.
+- **Filtros de Auditoria**: Novos KPIs no painel de eventos permitem identificar em segundos itens sem classificação completa.
 
 ## 🚀 Arquitetura de Dados Dinâmicos
 O ecossistema opera sobre metadados totalmente dinâmicos:
 - **Coleções de Configuração**: `configuracoes_tipo_evento`, `configuracoes_categorias` e `configuracoes_estilos`.
-- **Sincronização**: Alterações no portal refletem instantaneamente no motor de busca do App e no conhecimento contextual da IA.
+- **Cascata de Dados**: Lógica de dependência onde a Categoria selecionada filtra os Tipos disponíveis, que por sua vez filtram os Estilos.
 
 ## 📱 Experiência Mobile & Acessibilidade
 - **Interface Touch-First**: Ações críticas (Bulk Edit, Chat Actions, Galeria) otimizadas para dispositivos touch, eliminando dependência de hover.
 - **Sidebar & Paginação**: Navegação responsiva com sidebar retrátil e paginação mobile-friendly.
 
 ## Evoluções Concluídas
-- [x] **IA Copilot 1.0**: Automação massiva com busca e proposta de ajustes, garantindo que a IA não apenas salve, mas também corrija o banco de dados.
-- [x] **Integridade Touch**: Ações críticas e chat otimizados para uso em dispositivos móveis.
-- [x] **Taxonomia Unificada**: Sincronização absoluta entre App, Portal e IA via metadados dinâmicos.
+- [x] **Taxonomia Hierárquica 2.0**: Sincronização absoluta entre App, Portal e IA via metadados dinâmicos e seletores em cascata.
+- [x] **Qualidade Assistida**: Modal de ajuda JSON e IA resiliente a erros de imagem.
+- [x] **Auditoria Visual**: Dashboards e tabelas focados em integridade de dados (Taxonomia e Qualidade).
 
 ## Evoluções Futuras
 1. Notificações push automáticas segmentadas por interesse de Estilo/Categoria.

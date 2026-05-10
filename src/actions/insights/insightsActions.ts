@@ -82,10 +82,18 @@ export async function buscarInsights(): Promise<ActionResponse<{
 
     // Distribuição por categoria (Nova Taxonomia: Categoria > Tipo > Estilo)
     const catMap: Record<string, number> = {};
+    let semTaxonomia = 0;
+
     eventos.forEach((e: any) => {
-      const cat = e.categoria || e.tipo_evento || 'Sem Categoria';
-      catMap[cat] = (catMap[cat] || 0) + 1;
+      if (e.categoria) {
+        catMap[e.categoria] = (catMap[e.categoria] || 0) + 1;
+      } else {
+        semTaxonomia++;
+        const fallback = e.tipo_evento || 'Sem Classificação';
+        catMap[fallback] = (catMap[fallback] || 0) + 1;
+      }
     });
+
     const categorias: ChartData[] = Object.entries(catMap)
       .map(([nome, valor]) => ({ nome, valor }))
       .sort((a, b) => b.valor - a.valor);

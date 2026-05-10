@@ -443,13 +443,19 @@ export default function GeminiChat() {
                  </label>
               </div>
 
-              <input
+              <textarea
                 disabled={!conversaAtiva}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && window.innerWidth >= 768) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                rows={1}
                 placeholder={conversaAtiva ? "Pergunte algo ou anexe um print..." : "Selecione uma conversa..."}
-                className="flex-1 px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
+                className="flex-1 px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-purple-500 shadow-sm resize-none min-h-[46px] max-h-[150px] overflow-y-auto"
               />
               <button 
                 onClick={handleSend}
