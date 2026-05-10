@@ -37,6 +37,7 @@ export default function ManualCuradoria() {
     linkIngresso: '',
     imagemUrl: '',
     indicadoPor: null as any,
+    notaCuradoria: '',
   });
 
   // Achatando as taxonomias para seleção granular
@@ -97,6 +98,7 @@ export default function ManualCuradoria() {
         linkIngresso: '',
         imagemUrl: '',
         indicadoPor: null,
+        notaCuradoria: '',
       });
     } catch (err) {
       alert('Erro ao salvar: ' + err);
@@ -226,6 +228,23 @@ export default function ManualCuradoria() {
                 <textarea value={form.descricao} onChange={e => handleChange('descricao', e.target.value)} rows={4} className={inputCls} placeholder="Conte mais sobre o evento..." />
               </div>
 
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className={labelCls}>Nota da Curadoria (Destaque no App)</label>
+                  <span className={`text-[10px] font-bold ${form.notaCuradoria.length > 100 ? 'text-red-500' : 'text-zinc-400'}`}>
+                    {form.notaCuradoria.length}/100
+                  </span>
+                </div>
+                <textarea 
+                  value={form.notaCuradoria} 
+                  onChange={e => handleChange('notaCuradoria', e.target.value.slice(0, 100))} 
+                  rows={2} 
+                  className={inputCls} 
+                  placeholder="Ex: Últimos ingressos! Ou: Mudança de local para o palco principal." 
+                />
+                <p className="text-[10px] text-purple-500 mt-1 font-medium">Esta nota terá um destaque colorido no card do App.</p>
+              </div>
+
               <div className="p-4 bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-2xl">
                 <UserSelector
                   selectedUid={form.indicadoPor?.uid}
@@ -277,9 +296,17 @@ export default function ManualCuradoria() {
 
               {/* Conteúdo */}
               <div className="p-5 flex-1 flex flex-col">
-                <h3 className="text-xl font-black text-zinc-900 dark:text-white leading-tight mb-4 truncate-2">
+                <h3 className="text-xl font-black text-zinc-900 dark:text-white leading-tight mb-2 truncate-2">
                   {form.nome || 'Nome do Evento'}
                 </h3>
+
+                {form.notaCuradoria && (
+                  <div className="mb-4 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                    <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-tighter leading-tight">
+                      Nota da Curadoria: {form.notaCuradoria}
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 text-zinc-500">

@@ -61,7 +61,8 @@ const tools = [
                   estilo: { type: 'string' },
                   gratuito: { type: 'boolean' },
                   preco: { type: 'string' },
-                  linkIngresso: { type: 'string' }
+                  linkIngresso: { type: 'string' },
+                  notaCuradoria: { type: 'string', description: 'Nota ou aviso importante da curadoria para o público (máx 100 caracteres)' }
                 },
                 required: ['nome', 'dataInicio', 'local', 'tipo_evento', 'categoria']
               }
@@ -133,6 +134,9 @@ REGRAS DE VALIDAÇÃO (CRÍTICO):
    - NÃO ADIVINHE OU ESTIME HORÁRIOS/PREÇOS: Se a fonte original indicar "Confirmar no link", "A confirmar" ou algo incerto, você DEVE manter exatamente esse texto no JSON. NUNCA tente estimar (ex: 23:59 ou 10:00) para "satisfazer" o formato.
    - Campos Obrigatórios com Incerteza: Se um campo obrigatório (como data) for totalmente desconhecido, avise o usuário. Para horários e preços, o texto "Confirmar no link" é perfeitamente aceitável e preferível a uma estimativa errada.
    - Links de Imagem: Se o link da imagem estiver quebrado ou for inacessível, deixe o campo imagemUrl vazio ("") e informe o motivo.
+6. NOTA DA CURADORIA:
+   - Você pode incluir um campo "notaCuradoria" (máx 100 caracteres) com avisos importantes (ex: "Chegue cedo!", "Entrada permitida apenas com RG"). 
+   - SEMPRE que estiver salvando eventos (individuais ou massa), pergunte ao curador se ele deseja adicionar alguma nota de observação para os eventos antes de finalizar.
 
 ESTRUTURA JSON ESPERADA (Exemplo):
 {
@@ -146,7 +150,8 @@ ESTRUTURA JSON ESPERADA (Exemplo):
   "estilo": "Rock",
   "gratuito": true,
   "preco": "R$ 50,00",
-  "linkIngresso": "https://..."
+  "linkIngresso": "https://...",
+  "notaCuradoria": "Aviso importante aqui"
 }
 
 CAPACIDADES ESPECIAIS:

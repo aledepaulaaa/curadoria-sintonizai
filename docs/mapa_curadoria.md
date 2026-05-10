@@ -1,8 +1,11 @@
-# Mapa Curadoria Sintonizaí - v2.4
+# Mapa Curadoria Sintonizaí - v2.6
 
 ## 🧠 Inteligência & Ingestão
-- **Gemini Chat**: Copiloto para análise de links, extração de metadados e salvamento inteligente (Proibição de estimativas e checagem de duplicidade).
+- **Gemini Chat**: Copiloto para análise de links, extração de metadados e salvamento inteligente (Proibição de estimativas e checagem de duplicidade). Agora com prompt proativo para inclusão de **Notas da Curadoria**.
+- **Nota da Curadoria**: Nova propriedade `notaCuradoria` (máx 100 caracteres) para avisos importantes com destaque visual no App.
+- **Melhorias de UX Chat**: Suporte a quebra de linha com Shift+Enter no desktop e Enter no mobile, além de scroll automático inteligente.
 - **Taxonomia Hierárquica**: Gestão 3 níveis (Categoria > Tipo > Estilo) em cascata.
+- **Estabilidade de Mídias**: Gestão centralizada de `storage.rules` com acesso público para a pasta `/eventos/`, eliminando quebras de imagem na galeria e previews.
  a coleção `eventos` do Firestore, compartilhada com o app mobile.
 
 ## Diagrama de Fluxo

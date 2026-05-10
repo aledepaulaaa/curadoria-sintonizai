@@ -1,5 +1,27 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [2.6] — 2026-05-10 — Notas da Curadoria e Comunicação Proativa
+### ✨ Funcionalidades
+- **Notas da Curadoria**: Adicionada a propriedade `notaCuradoria` (até 100 caracteres) em todo o ecossistema. Permite que curadores insiram avisos importantes que aparecem com destaque visual (badge e cor de alerta) nos cards e detalhes do evento no App.
+- **IA Proativa (Feedback Loop)**: O assistente Gemini agora pergunta proativamente se o curador deseja adicionar uma nota especial antes de salvar eventos (em massa ou individuais).
+- **UX Multiline no Chat**: Implementado suporte total a quebras de linha no Chat IA. `Shift + Enter` para nova linha no desktop e suporte a `Enter` multiline no mobile, melhorando drasticamente a redação de prompts complexos.
+- **Scroll Inteligente**: O chat agora realiza scroll automático para a última mensagem de forma mais suave e precisa, garantindo que o usuário nunca perca o contexto da resposta da IA.
+
+### 🛠️ Melhorias Técnicas
+- **Update de Interface**: Atualizada a interface `Evento` no Portal e App para suportar o novo campo opcional.
+- **Formulário de Curadoria**: Inclusão do campo de texto com contador de caracteres no `EventoForm.tsx` e `ManualCuradoria.tsx`.
+- **System Instructions**: Atualização do prompt do Gemini para incluir a regra de "Nota da Curadoria" e o modelo JSON atualizado.
+
+## [2.5] — 2026-05-10 — Gestão de Storage e Estabilidade de Mídias
+### ✨ Funcionalidades
+- **Gestão de Storage Rules**: Implementado arquivo `storage.rules` no projeto para controle de permissões. Agora as regras são versionadas e gerenciadas via CLI.
+- **Leitura Pública de Eventos**: Liberado acesso `read` para a pasta `/eventos/`, resolvendo definitivamente o problema de imagens "quebradas" na galeria e previews.
+
+## [2.4] — 2026-05-10 — Integridade de Dados e Anti-Duplicidade IA
+### ✨ Funcionalidades
+- **Proteção contra Duplicidade (IA)**: O assistente Gemini agora realiza uma checagem robusta (Nome + Data + Taxonomia) antes de salvar, evitando redundância de dados.
+- **Fidelidade de Dados (Zero Estimativas)**: Instruções de sistema atualizadas para proibir categoricamente inferências de horários/preços; preservação do texto "Confirmar no link" garantida.
+
 ## [2.3] — 2026-05-10 — Taxonomia Hierárquica e Qualidade IA
 ### ✨ Funcionalidades
 - **Taxonomia em Cascata (3 Níveis)**: Implementação definitiva da hierarquia **Categoria > Tipo de Evento > Estilo**. O sistema agora força a classificação correta em todo o ecossistema.

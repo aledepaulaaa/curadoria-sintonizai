@@ -37,6 +37,7 @@ export interface Evento {
     uid: string;
     foto?: string;
   };
+  notaCuradoria?: string;
 }
 
 export interface EventoRaw {

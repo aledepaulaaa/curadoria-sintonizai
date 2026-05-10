@@ -36,6 +36,7 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
     linkIngresso: inicial?.linkIngresso || '',
     imagemUrl: inicial?.imagemUrl || '',
     indicadoPor: inicial?.indicadoPor || null as any,
+    notaCuradoria: inicial?.notaCuradoria || '',
   });
 
   const categoriasAchatadas = React.useMemo(() => {
@@ -92,11 +93,12 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
         linkIngresso: form.linkIngresso,
         imagemUrl: form.imagemUrl,
         indicadoPor: form.indicadoPor || undefined,
+        notaCuradoria: form.notaCuradoria,
         fonte: inicial?.fonte || (form.indicadoPor ? 'indicacao_usuario' : 'curadoria_manual'),
       } as any);
       if (!inicial) {
         setForm({ nome: '', descricao: '', dataInicio: '', horario: '', localNome: '', endereco: '',
-          categoria: categorias[0]?.label || '', estilo: estilos[0]?.label || '', tipo_evento: tiposAchatados[0] || '', gratuito: false, preco: '', linkIngresso: '', imagemUrl: '', indicadoPor: null });
+          categoria: categorias[0]?.label || '', estilo: estilos[0]?.label || '', tipo_evento: tiposAchatados[0] || '', gratuito: false, preco: '', linkIngresso: '', imagemUrl: '', indicadoPor: null, notaCuradoria: '' });
       }
     } finally {
       setSalvando(false);
@@ -213,6 +215,23 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
       <div>
         <label className={labelCls}>Descrição</label>
         <textarea value={form.descricao} onChange={(e) => handleChange('descricao', e.target.value)} rows={4} className={inputCls} placeholder="Detalhes do evento..." />
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className={labelCls}>Nota da Curadoria (Aviso Importante)</label>
+          <span className={`text-[10px] font-bold ${form.notaCuradoria?.length > 100 ? 'text-red-500' : 'text-zinc-400'}`}>
+            {form.notaCuradoria?.length || 0}/100
+          </span>
+        </div>
+        <textarea 
+          value={form.notaCuradoria} 
+          onChange={(e) => handleChange('notaCuradoria', e.target.value.slice(0, 100))} 
+          rows={2} 
+          className={inputCls} 
+          placeholder="Ex: Chegue cedo para garantir lugar! Ou: Evento sujeito a lotação." 
+        />
+        <p className="text-[10px] text-purple-500 mt-1 font-medium">Esta nota aparecerá com destaque no card do evento no App.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -595,7 +595,8 @@ export default function GeminiChat() {
                             imagemUrl: "https://exemplo.com/foto-evento.jpg",
                             gratuito: false,
                             preco: "R$ 450,00",
-                            linkIngresso: "https://ticketmaster.com.br"
+                            linkIngresso: "https://ticketmaster.com.br",
+                            notaCuradoria: "Destaque da Curadoria: Chegue cedo!"
                           };
                           navigator.clipboard.writeText(JSON.stringify(json, null, 2));
                           alert('Copiado para a área de transferência!');
@@ -622,7 +623,8 @@ export default function GeminiChat() {
   "imagemUrl": "URL da Imagem (Opcional)",
   "gratuito": false,
   "preco": "R$ 0,00",
-  "linkIngresso": "URL"
+  "linkIngresso": "URL",
+  "notaCuradoria": "Aviso curto (máx 100 caracteres)"
 }`}
                    </pre>
                 </div>
