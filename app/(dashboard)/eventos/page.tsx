@@ -23,7 +23,7 @@ export default function EventosPage() {
   const [confirmarEditarLote, setConfirmarEditarLote] = React.useState(false);
   const [eventoSelecionado, setEventoSelecionado] = React.useState<Evento | null>(null);
   const [selecionados, setSelecionados] = React.useState<Set<string>>(new Set());
-  const [filtroQualidade, setFiltroQualidade] = React.useState<'todos' | 'imagem' | 'texto' | 'caracteres'>('todos');
+  const [filtroQualidade, setFiltroQualidade] = React.useState<'todos' | 'imagem' | 'texto' | 'caracteres' | 'taxonomia'>('todos');
 
   const [ordem, setOrdem] = React.useState<{ col: string; desc: boolean }>({ col: 'dataInicio', desc: false });
   const [filtrosColuna, setFiltrosColuna] = React.useState({
@@ -31,7 +31,10 @@ export default function EventosPage() {
     local: '',
     tipo: '',
     data: '',
-    status: ''
+    status: '',
+    categoria: '',
+    estilo: '',
+    entrada: ''
   });
   const [filtroTemp, setFiltroTemp] = React.useState('');
   const [colunaFiltroAtiva, setColunaFiltroAtiva] = React.useState<string | null>(null);
@@ -65,7 +68,10 @@ export default function EventosPage() {
       local: '',
       tipo: '',
       data: '',
-      status: ''
+      status: '',
+      categoria: '',
+      estilo: '',
+      entrada: ''
     });
     setBusca('');
     setFiltroQualidade('todos');
@@ -92,6 +98,8 @@ export default function EventosPage() {
       result = result.filter(e => 
         regexInvalido.test(e.nome) || regexInvalido.test(e.descricao || '')
       );
+    } else if (filtroQualidade === 'taxonomia') {
+      result = result.filter(e => !e.categoria || !e.tipo_evento || !e.estilo);
     }
 
     // Filtro Global
@@ -100,7 +108,9 @@ export default function EventosPage() {
       result = result.filter((e) =>
         e.nome.toLowerCase().includes(q) ||
         (e.local?.nome || '').toLowerCase().includes(q) ||
-        (e.tipo_evento || '').toLowerCase().includes(q)
+        (e.tipo_evento || '').toLowerCase().includes(q) ||
+        (e.categoria || '').toLowerCase().includes(q) ||
+        (e.estilo || '').toLowerCase().includes(q)
       );
     }
 
@@ -114,6 +124,23 @@ export default function EventosPage() {
     if (filtrosColuna.tipo) {
       const q = filtrosColuna.tipo.toLowerCase();
       result = result.filter(e => (e.tipo_evento || '').toLowerCase().includes(q));
+    }
+    if (filtrosColuna.categoria) {
+      const q = filtrosColuna.categoria.toLowerCase();
+      result = result.filter(e => (e.categoria || '').toLowerCase().includes(q));
+    }
+    if (filtrosColuna.estilo) {
+      const q = filtrosColuna.estilo.toLowerCase();
+      result = result.filter(e => (e.estilo || '').toLowerCase().includes(q));
+    }
+    if (filtrosColuna.entrada) {
+      const q = filtrosColuna.entrada.toLowerCase();
+      result = result.filter(e => {
+        const isGratuito = e.gratuito || (e.preco?.toLowerCase().includes('grátis') || e.preco?.toLowerCase().includes('0,00'));
+        if (q === 'gratuito') return isGratuito;
+        if (q === 'pago') return !isGratuito;
+        return true;
+      });
     }
     if (filtrosColuna.data) {
       result = result.filter(e => formatarData(e.dataInicio).includes(filtrosColuna.data));
@@ -141,6 +168,8 @@ export default function EventosPage() {
       if (ordem.col === 'nome') { valA = a.nome; valB = b.nome; }
       else if (ordem.col === 'local') { valA = a.local?.nome || ''; valB = b.local?.nome || ''; }
       else if (ordem.col === 'tipo') { valA = a.tipo_evento || ''; valB = b.tipo_evento || ''; }
+      else if (ordem.col === 'categoria') { valA = a.categoria || ''; valB = b.categoria || ''; }
+      else if (ordem.col === 'estilo') { valA = a.estilo || ''; valB = b.estilo || ''; }
       else if (ordem.col === 'data') { valA = a.dataInicio; valB = b.dataInicio; }
 
       if (valA < valB) return ordem.desc ? 1 : -1;
@@ -149,7 +178,7 @@ export default function EventosPage() {
     });
 
     return result;
-  }, [eventos, busca, ordem, filtroQualidade]);
+  }, [eventos, busca, ordem, filtroQualidade, filtrosColuna]);
 
   // Métricas de Qualidade
   const metricas = React.useMemo(() => {
@@ -167,8 +196,10 @@ export default function EventosPage() {
     const comErroCaracteres = eventos.filter(e => 
       regexInvalido.test(e.nome) || regexInvalido.test(e.descricao || '')
     ).length;
+    
+    const comErroTaxonomia = eventos.filter(e => !e.categoria || !e.tipo_evento || !e.estilo).length;
 
-    return { total: eventos.length, comErroImagem, comErroTexto, comErroCaracteres };
+    return { total: eventos.length, comErroImagem, comErroTexto, comErroCaracteres, comErroTaxonomia };
   }, [eventos]);
 
   const paginados = filtrados.slice(pagina * itensPorPagina, (pagina + 1) * itensPorPagina);
@@ -217,12 +248,12 @@ export default function EventosPage() {
       </div>
 
       {/* Indicadores de Qualidade */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <button 
           onClick={() => setFiltroQualidade('todos')}
           className={`p-4 rounded-2xl border transition-all text-left ${filtroQualidade === 'todos' ? 'bg-purple-500 border-purple-500 text-white shadow-lg shadow-purple-500/20' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-purple-500'}`}
         >
-          <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'todos' ? 'text-purple-200' : 'text-zinc-400'}`}>Total de Eventos</p>
+          <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'todos' ? 'text-purple-200' : 'text-zinc-400'}`}>Total</p>
           <p className="text-2xl font-bold">{metricas.total}</p>
         </button>
 
@@ -231,7 +262,7 @@ export default function EventosPage() {
           className={`p-4 rounded-2xl border transition-all text-left ${filtroQualidade === 'imagem' ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-red-500'}`}
         >
           <div className="flex items-center justify-between">
-            <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'imagem' ? 'text-red-200' : 'text-zinc-400'}`}>Ajuste de Imagem</p>
+            <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'imagem' ? 'text-red-200' : 'text-zinc-400'}`}>Imagem</p>
             {metricas.comErroImagem > 0 && <span className="flex h-2 w-2 rounded-full bg-red-400 animate-pulse" />}
           </div>
           <p className="text-2xl font-bold">{metricas.comErroImagem}</p>
@@ -242,7 +273,7 @@ export default function EventosPage() {
           className={`p-4 rounded-2xl border transition-all text-left ${filtroQualidade === 'texto' ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-amber-500'}`}
         >
           <div className="flex items-center justify-between">
-            <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'texto' ? 'text-amber-200' : 'text-zinc-400'}`}>Ajuste de Conteúdo</p>
+            <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'texto' ? 'text-amber-200' : 'text-zinc-400'}`}>Conteúdo</p>
             {metricas.comErroTexto > 0 && <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />}
           </div>
           <p className="text-2xl font-bold">{metricas.comErroTexto}</p>
@@ -253,10 +284,21 @@ export default function EventosPage() {
           className={`p-4 rounded-2xl border transition-all text-left ${filtroQualidade === 'caracteres' ? 'bg-zinc-600 border-zinc-600 text-white shadow-lg shadow-zinc-500/20' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-zinc-500'}`}
         >
           <div className="flex items-center justify-between">
-            <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'caracteres' ? 'text-zinc-200' : 'text-zinc-400'}`}>Caracteres Inválidos</p>
+            <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'caracteres' ? 'text-zinc-200' : 'text-zinc-400'}`}>Caracteres</p>
             {metricas.comErroCaracteres > 0 && <span className="flex h-2 w-2 rounded-full bg-zinc-400 animate-pulse" />}
           </div>
           <p className="text-2xl font-bold">{metricas.comErroCaracteres}</p>
+        </button>
+
+        <button 
+          onClick={() => setFiltroQualidade('taxonomia')}
+          className={`p-4 rounded-2xl border transition-all text-left ${filtroQualidade === 'taxonomia' ? 'bg-pink-600 border-pink-600 text-white shadow-lg shadow-pink-500/20' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-pink-500'}`}
+        >
+          <div className="flex items-center justify-between">
+            <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'taxonomia' ? 'text-pink-200' : 'text-zinc-400'}`}>Taxonomia</p>
+            {metricas.comErroTaxonomia > 0 && <span className="flex h-2 w-2 rounded-full bg-pink-400 animate-pulse" />}
+          </div>
+          <p className="text-2xl font-bold">{metricas.comErroTaxonomia}</p>
         </button>
       </div>
 
@@ -410,6 +452,67 @@ export default function EventosPage() {
                 </th>
                 <th className="text-left px-4 py-3 font-semibold relative group">
                   <div className="flex items-center gap-2">
+                    <span className="whitespace-nowrap">Entrada</span>
+                    <button onClick={() => abrirFiltro('entrada', filtrosColuna.entrada)} className={`p-1 rounded transition-all ${filtrosColuna.entrada ? 'text-purple-500 bg-purple-50 dark:bg-purple-500/10' : 'text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
+                      <Filter size={12} />
+                    </button>
+                  </div>
+                  {colunaFiltroAtiva === 'entrada' && (
+                    <div className="absolute top-full left-0 z-50 mt-1 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl w-64 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Filtrar Entrada</span>
+                        <button onClick={() => setColunaFiltroAtiva(null)} className="text-zinc-400 hover:text-zinc-600"><X size={14} /></button>
+                      </div>
+                      <select 
+                        autoFocus
+                        value={filtroTemp}
+                        onChange={(e) => setFiltroTemp(e.target.value)}
+                        className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">Todos</option>
+                        <option value="gratuito">Gratuito</option>
+                        <option value="pago">Pago</option>
+                      </select>
+                      <div className="flex gap-2">
+                        <button onClick={() => aplicarFiltro('entrada')} className="flex-1 py-2 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-purple-700 transition-all active:scale-95">Aplicar</button>
+                        <button onClick={() => limparFiltro('entrada')} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all">Limpar</button>
+                      </div>
+                    </div>
+                  )}
+                </th>
+                <th className="text-left px-4 py-3 font-semibold relative group">
+                  <div className="flex items-center gap-2">
+                    <span className="cursor-pointer hover:text-purple-500 whitespace-nowrap" onClick={() => handleToggleOrdem('categoria')}>Categoria</span>
+                    <button onClick={() => abrirFiltro('categoria', filtrosColuna.categoria)} className={`p-1 rounded transition-all ${filtrosColuna.categoria ? 'text-purple-500 bg-purple-50 dark:bg-purple-500/10' : 'text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
+                      <Filter size={12} />
+                    </button>
+                    <div className="cursor-pointer" onClick={() => handleToggleOrdem('categoria')}>
+                      {renderSortIcon('categoria')}
+                    </div>
+                  </div>
+                  {colunaFiltroAtiva === 'categoria' && (
+                    <div className="absolute top-full left-0 z-50 mt-1 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl w-64 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Filtrar Categoria</span>
+                        <button onClick={() => setColunaFiltroAtiva(null)} className="text-zinc-400 hover:text-zinc-600"><X size={14} /></button>
+                      </div>
+                      <input 
+                        autoFocus
+                        value={filtroTemp}
+                        onChange={(e) => setFiltroTemp(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && aplicarFiltro('categoria')}
+                        placeholder="Digite a categoria..."
+                        className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={() => aplicarFiltro('categoria')} className="flex-1 py-2 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-purple-700 transition-all active:scale-95">Aplicar</button>
+                        <button onClick={() => limparFiltro('categoria')} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all">Limpar</button>
+                      </div>
+                    </div>
+                  )}
+                </th>
+                <th className="text-left px-4 py-3 font-semibold relative group">
+                  <div className="flex items-center gap-2">
                     <span className="cursor-pointer hover:text-purple-500 whitespace-nowrap" onClick={() => handleToggleOrdem('tipo')}>Tipo</span>
                     <button onClick={() => abrirFiltro('tipo', filtrosColuna.tipo)} className={`p-1 rounded transition-all ${filtrosColuna.tipo ? 'text-purple-500 bg-purple-50 dark:bg-purple-500/10' : 'text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
                       <Filter size={12} />
@@ -435,6 +538,37 @@ export default function EventosPage() {
                       <div className="flex gap-2">
                         <button onClick={() => aplicarFiltro('tipo')} className="flex-1 py-2 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-purple-700 transition-all active:scale-95">Aplicar</button>
                         <button onClick={() => limparFiltro('tipo')} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all">Limpar</button>
+                      </div>
+                    </div>
+                  )}
+                </th>
+                <th className="text-left px-4 py-3 font-semibold relative group">
+                  <div className="flex items-center gap-2">
+                    <span className="cursor-pointer hover:text-purple-500 whitespace-nowrap" onClick={() => handleToggleOrdem('estilo')}>Estilo</span>
+                    <button onClick={() => abrirFiltro('estilo', filtrosColuna.estilo)} className={`p-1 rounded transition-all ${filtrosColuna.estilo ? 'text-purple-500 bg-purple-50 dark:bg-purple-500/10' : 'text-zinc-400 opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}>
+                      <Filter size={12} />
+                    </button>
+                    <div className="cursor-pointer" onClick={() => handleToggleOrdem('estilo')}>
+                      {renderSortIcon('estilo')}
+                    </div>
+                  </div>
+                  {colunaFiltroAtiva === 'estilo' && (
+                    <div className="absolute top-full left-0 z-50 mt-1 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-2xl w-64 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Filtrar Estilo</span>
+                        <button onClick={() => setColunaFiltroAtiva(null)} className="text-zinc-400 hover:text-zinc-600"><X size={14} /></button>
+                      </div>
+                      <input 
+                        autoFocus
+                        value={filtroTemp}
+                        onChange={(e) => setFiltroTemp(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && aplicarFiltro('estilo')}
+                        placeholder="Digite o estilo..."
+                        className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={() => aplicarFiltro('estilo')} className="flex-1 py-2 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-purple-700 transition-all active:scale-95">Aplicar</button>
+                        <button onClick={() => limparFiltro('estilo')} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all">Limpar</button>
                       </div>
                     </div>
                   )}
@@ -518,6 +652,25 @@ export default function EventosPage() {
                     <button onClick={() => setBusca(e.local?.nome || '')} className="hover:text-purple-500 transition-colors text-left">{e.local?.nome}</button>
                   </td>
                   <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                      e.gratuito || (e.preco?.toLowerCase().includes('grátis') || e.preco?.toLowerCase().includes('0,00'))
+                      ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                      : 'bg-blue-500/10 text-blue-600 border border-blue-500/20'
+                    }`}>
+                      {e.gratuito || (e.preco?.toLowerCase().includes('grátis') || e.preco?.toLowerCase().includes('0,00')) ? 'Gratuito' : 'Pago'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {e.categoria ? (
+                      <button 
+                        onClick={() => setBusca(e.categoria || '')}
+                        className="px-2 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-medium border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 transition-colors"
+                      >
+                        {e.categoria}
+                      </button>
+                    ) : '—'}
+                  </td>
+                  <td className="px-4 py-3">
                     {e.tipo_evento ? (
                       <button 
                         onClick={() => setBusca(e.tipo_evento || '')}
@@ -527,9 +680,19 @@ export default function EventosPage() {
                       </button>
                     ) : '—'}
                   </td>
+                  <td className="px-4 py-3">
+                    {e.estilo ? (
+                      <button 
+                        onClick={() => setBusca(e.estilo || '')}
+                        className="px-2 py-1 rounded-lg bg-pink-500/10 text-pink-600 dark:text-pink-400 text-xs font-medium border border-pink-200 dark:border-pink-500/20 hover:bg-pink-500/20 transition-colors"
+                      >
+                        {e.estilo}
+                      </button>
+                    ) : '—'}
+                  </td>
                   <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">{formatarData(e.dataInicio)}</td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 flex-wrap">
                       {(!e.imagemUrl || (!e.imagemUrl.includes('firebasestorage.googleapis.com') && !e.imagemUrl.includes('storage.googleapis.com'))) && (
                         <span className="px-1.5 py-0.5 rounded-md bg-red-500/10 text-red-500 text-[10px] font-black uppercase border border-red-500/20" title="Imagem externa ou ausente">Imagem</span>
                       )}
@@ -539,7 +702,10 @@ export default function EventosPage() {
                       {(/[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/.test(e.nome) || /[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/.test(e.descricao || '')) && (
                         <span className="px-1.5 py-0.5 rounded-md bg-zinc-500/10 text-zinc-500 text-[10px] font-black uppercase border border-zinc-500/20" title="Caracteres especiais/inválidos">Caracteres</span>
                       )}
-                      {(e.imagemUrl && (e.imagemUrl.includes('firebasestorage.googleapis.com') || e.imagemUrl.includes('storage.googleapis.com')) && e.nome && e.nome.length >= 5 && e.descricao && e.descricao.length >= 20 && !/[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/.test(e.nome) && !/[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/.test(e.descricao || '')) && (
+                      {(!e.categoria || !e.tipo_evento || !e.estilo) && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-600 text-[10px] font-black uppercase border border-purple-500/20" title="Falta classificação na taxonomia">Taxonomia</span>
+                      )}
+                      {(e.imagemUrl && (e.imagemUrl.includes('firebasestorage.googleapis.com') || e.imagemUrl.includes('storage.googleapis.com')) && e.nome && e.nome.length >= 5 && e.descricao && e.descricao.length >= 20 && e.categoria && e.tipo_evento && e.estilo && !/[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/.test(e.nome) && !/[^\x20-\x7E\u00A0-\u00FF\u2010-\u201F]/.test(e.descricao || '')) && (
                         <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase border border-emerald-500/20">OK</span>
                       )}
                     </div>

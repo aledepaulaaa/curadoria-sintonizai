@@ -80,10 +80,10 @@ export async function buscarInsights(): Promise<ActionResponse<{
       { label: 'Idade Média', valor: mediaIdade, icone: 'Calendar' },
     ];
 
-    // Distribuição por categoria
+    // Distribuição por categoria (Nova Taxonomia: Categoria > Tipo > Estilo)
     const catMap: Record<string, number> = {};
     eventos.forEach((e: any) => {
-      const cat = e.tipo_evento || e.categoria || 'Outros';
+      const cat = e.categoria || e.tipo_evento || 'Sem Categoria';
       catMap[cat] = (catMap[cat] || 0) + 1;
     });
     const categorias: ChartData[] = Object.entries(catMap)

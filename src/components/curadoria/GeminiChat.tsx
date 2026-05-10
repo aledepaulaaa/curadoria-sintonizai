@@ -44,6 +44,7 @@ export default function GeminiChat() {
   const [imagemAnexada, setImagemAnexada] = React.useState<{ data: string, mimeType: string, preview: string } | null>(null);
   const [propostaAjuste, setPropostaAjuste] = React.useState<any>(null);
   const [statusIA, setStatusIA] = React.useState<string | null>(null);
+  const [modalAjuda, setModalAjuda] = React.useState(false);
 
   const carregarConversas = React.useCallback(async () => {
     const lista = await listarConversasIA();
@@ -324,6 +325,14 @@ export default function GeminiChat() {
               </div>
             </div>
           </div>
+
+          <button 
+            onClick={() => setModalAjuda(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm"
+          >
+            <FileText size={14} className="text-purple-600" />
+            Exemplo JSON
+          </button>
         </div>
 
         {/* Messages */}
@@ -530,6 +539,110 @@ export default function GeminiChat() {
                 >
                   {loading ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
                   Confirmar Ajustes
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Exemplo JSON */}
+      <AnimatePresence>
+        {modalAjuda && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center text-purple-600">
+                    <FileText size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Estrutura de Dados</h2>
+                    <p className="text-sm text-zinc-500 font-medium">Siga este padrão para adicionar eventos via IA</p>
+                  </div>
+                </div>
+                <button onClick={() => setModalAjuda(false)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                <div className="space-y-4">
+                   <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-zinc-400 uppercase tracking-widest">Modelo JSON</span>
+                      <button 
+                        onClick={() => {
+                          const json = {
+                            nome: "Exemplo: Show do Coldplay",
+                            descricao: "Coldplay traz sua turnê mundial para Curitiba com um espetáculo de luzes e cores.",
+                            dataInicio: "2024-11-20",
+                            horario: "21:00",
+                            local: { nome: "Estádio Couto Pereira", lat: -25.4217, lng: -49.2605 },
+                            categoria: "Música",
+                            tipo_evento: "Show",
+                            estilo: "Pop",
+                            imagemUrl: "https://exemplo.com/foto-evento.jpg",
+                            gratuito: false,
+                            preco: "R$ 450,00",
+                            linkIngresso: "https://ticketmaster.com.br"
+                          };
+                          navigator.clipboard.writeText(JSON.stringify(json, null, 2));
+                          alert('Copiado para a área de transferência!');
+                        }}
+                        className="text-[10px] font-black text-purple-600 uppercase bg-purple-50 dark:bg-purple-900/20 px-3 py-1 rounded-lg hover:bg-purple-100 transition-colors"
+                      >
+                        Copiar Modelo
+                      </button>
+                   </div>
+                   <pre className="p-6 bg-zinc-900 text-purple-300 rounded-3xl text-xs font-mono overflow-x-auto border border-zinc-800 shadow-inner">
+{`{
+  "nome": "Nome do Evento (Obrigatório)",
+  "descricao": "Texto detalhado (Obrigatório)",
+  "dataInicio": "YYYY-MM-DD (Obrigatório)",
+  "horario": "HH:MM",
+  "local": { 
+     "nome": "Local/Estabelecimento",
+     "lat": -25.4217, 
+     "lng": -49.2605 
+  },
+  "categoria": "Hierarquia Nível 1",
+  "tipo_evento": "Hierarquia Nível 2",
+  "estilo": "Hierarquia Nível 3",
+  "imagemUrl": "URL da Imagem (Opcional)",
+  "gratuito": false,
+  "preco": "R$ 0,00",
+  "linkIngresso": "URL"
+}`}
+                   </pre>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                      <h4 className="text-[10px] font-black text-zinc-900 dark:text-white uppercase mb-2">💡 Dica de Taxonomia</h4>
+                      <p className="text-[11px] text-zinc-500 leading-relaxed">
+                        A IA só aceitará eventos que sigam a hierarquia definida em <strong>Categorias - Tipos - Estilos</strong>. Verifique se o Tipo pertence à Categoria escolhida.
+                      </p>
+                   </div>
+                   <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                      <h4 className="text-[10px] font-black text-zinc-900 dark:text-white uppercase mb-2">📍 Localização</h4>
+                      <p className="text-[11px] text-zinc-500 leading-relaxed">
+                        Sempre que possível, forneça a Latitude e Longitude para que o evento apareça corretamente no mapa do aplicativo.
+                      </p>
+                   </div>
+                </div>
+              </div>
+
+              <div className="p-8 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800">
+                <button 
+                  onClick={() => setModalAjuda(false)}
+                  className="w-full py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  Entendi, vamos lá!
                 </button>
               </div>
             </motion.div>

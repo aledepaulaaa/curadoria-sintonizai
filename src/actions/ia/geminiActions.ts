@@ -69,6 +69,17 @@ const tools = [
           },
           required: ['eventos']
         }
+      },
+      {
+        name: 'extrair_info_url',
+        description: 'Extrai metadados (título, descrição, imagem) de uma URL fornecida.',
+        parameters: {
+          type: 'object',
+          properties: {
+            url: { type: 'string', description: 'A URL do site ou rede social para extrair informações' }
+          },
+          required: ['url']
+        }
       }
     ]
   }
@@ -83,48 +94,81 @@ export async function chatComGemini(
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
-    // Buscar Metadados Atuais
+    // Buscar Metadados Atuais (Todas as Taxonomias agora são agrupadas)
     const [catSnap, estSnap, tipSnap] = await Promise.all([
       adminDb.collection('configuracoes_categorias').orderBy('ordem', 'asc').get(),
       adminDb.collection('configuracoes_estilos').orderBy('ordem', 'asc').get(),
       adminDb.collection('configuracoes_tipo_evento').orderBy('ordem', 'asc').get()
     ]);
 
-    let categoriasTexto = catSnap.docs.map(d => `- ${d.data().label}`).join('\n');
-    let estilosTexto = estSnap.docs.map(d => `- ${d.data().label}`).join('\n');
-    let tiposTexto = tipSnap.docs.map(d => {
-      const data = d.data();
+    const formatarGrupo = (doc: any) => {
+      const data = doc.data();
       return `- [Grupo: ${data.label}]: ${(data.itens || []).join(', ')}`;
-    }).join('\n');
+    };
+
+    let categoriasTexto = catSnap.docs.map(formatarGrupo).join('\n');
+    let estilosTexto = estSnap.docs.map(formatarGrupo).join('\n');
+    let tiposTexto = tipSnap.docs.map(formatarGrupo).join('\n');
+
+    // Lista plana para validação rápida pela IA
+    const todosItens = [
+      ...catSnap.docs.flatMap(d => d.data().itens || []),
+      ...estSnap.docs.flatMap(d => d.data().itens || []),
+      ...tipSnap.docs.flatMap(d => d.data().itens || [])
+    ];
 
     const instruction = `
 Você é o Copiloto de Curadoria do app Sintonizaí.
-Sua missão é ajudar o curador a manter o banco de dados organizado e de alta qualidade.
+Sua missão é ajudar o curador a manter o banco de dados organizado, validado e de altíssima qualidade.
+
+REGRAS DE VALIDAÇÃO (CRÍTICO):
+1. DATAS: Use sempre o formato DD/MM/AAAA para exibição e YYYY-MM-DD para salvar. Valide se a data é futura.
+2. HORÁRIOS: Use sempre o formato HH:MM (ex: 20:00). Se for vago (ex: "oito da noite"), converta.
+3. DUPLICIDADE: Antes de salvar um novo evento, use 'buscar_eventos' pelo nome. Se já existir um evento com o mesmo nome na mesma data, alerte o curador e NÃO salve duplicado.
+4. TAXONOMIA (CASCATA): O evento DEVE seguir a hierarquia: Categoria > Tipo de Evento > Estilo.
+   - A Categoria deve existir na lista abaixo.
+   - O Tipo de Evento deve pertencer à Categoria escolhida.
+   - O Estilo deve pertencer ao Tipo de Evento escolhido.
+5. IMAGENS: Se o usuário enviar um link (URL) de um site, rede social ou imagem, utilize 'extrair_info_url' para obter a imagem (og:image).
+   - IMPORTANTE: Se o link da imagem for inválido ou inacessível, deixe 'imagemUrl' vazio e AVISE o curador sobre o problema técnico, mas prossiga com a inserção dos outros dados se estiverem corretos.
+
+ESTRUTURA JSON ESPERADA (Exemplo):
+{
+  "nome": "Nome do Evento",
+  "descricao": "Texto descritivo",
+  "dataInicio": "YYYY-MM-DD",
+  "horario": "HH:MM",
+  "local": { "nome": "Nome do Local", "lat": -23.55, "lng": -46.63 },
+  "categoria": "Música",
+  "tipo_evento": "Show",
+  "estilo": "Rock",
+  "gratuito": true,
+  "preco": "R$ 50,00",
+  "linkIngresso": "https://..."
+}
 
 CAPACIDADES ESPECIAIS:
-1. BUSCA: Você pode pesquisar eventos existentes usando 'buscar_eventos'. Use isso para ver quais eventos precisam de correção.
-2. AJUSTE MASSIVO: Se o curador pedir para mudar algo em muitos eventos (ex: "Mude todos os 'Música' para 'Show'"), use 'propor_ajuste_massivo'.
-   - O campo "estilo" no Firestore corresponde ao que o usuário chama de "Estilo Musical" ou "Ritmo".
-   - O campo "tipo_evento" deve vir de um dos itens listados abaixo.
+1. BUSCA: Pesquise eventos existentes usando 'buscar_eventos'.
+2. AJUSTE MASSIVO: Para alterações em lote, use 'propor_ajuste_massivo'. Você deve orientar o curador sobre como organizar melhor os dados existentes baseando-se na nova taxonomia.
+3. EXTRAÇÃO: Use 'extrair_info_url' para processar links externos.
 
-VALORES VÁLIDOS (Use EXATAMENTE estes nomes):
-CATEGORIAS:
+VALORES VÁLIDOS (Use EXATAMENTE estes nomes de itens):
+CATEGORIAS (Por Grupos):
 ${categoriasTexto}
 
-ESTILOS/RITMOS:
+ESTILOS/RITMOS (Por Grupos):
 ${estilosTexto}
 
-TIPOS DE EVENTOS (Organizados por grupos):
+TIPOS DE EVENTOS (Por Grupos):
 ${tiposTexto}
 
-REGRAS:
-- Ao propor ajuste massivo, sempre explique o porquê.
-- Se o curador for vago (ex: "arruma os tipos"), primeiro busque os eventos ('buscar_eventos') para entender o que está errado e depois proponha o ajuste.
-- SEMPRE valide se o novo valor existe nas listas acima.
+FLUXO DE TRABALHO:
+- Para ajustes massivos: 1. Busque os eventos -> 2. Proponha a alteração -> 3. Aguarde confirmação (exiba status "Trabalhando...").
+- Para novos eventos: 1. Valide dados -> 2. Cheque duplicidade -> 3. Salve.
 `;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-flash-lite',
       systemInstruction: instruction,
       tools: tools as any
     });
@@ -203,6 +247,35 @@ REGRAS:
           });
           await batch.commit();
           results.push({ name, response: { success: true, count: eventos.length } });
+        }
+
+        if (name === 'extrair_info_url') {
+          const { url } = args;
+          try {
+            const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+            const html = await res.text();
+            
+            const getMeta = (tag: string) => {
+              const regex = new RegExp(`<meta[^>]+(?:property|name)="${tag}"[^>]+content="([^"]+)"`, 'i');
+              const match = html.match(regex);
+              if (match) return match[1];
+              // Tentar o outro formato (content antes do property)
+              const regexAlt = new RegExp(`<meta[^>]+content="([^"]+)"[^>]+(?:property|name)="${tag}"`, 'i');
+              const matchAlt = html.match(regexAlt);
+              return matchAlt ? matchAlt[1] : null;
+            };
+
+            const info = {
+              titulo: getMeta('og:title') || getMeta('twitter:title') || '',
+              descricao: getMeta('og:description') || getMeta('twitter:description') || '',
+              imagem: getMeta('og:image') || getMeta('twitter:image') || '',
+              url: url
+            };
+
+            results.push({ name, response: { success: true, ...info } });
+          } catch (e) {
+            results.push({ name, response: { success: false, error: 'Não foi possível acessar a URL' } });
+          }
         }
       }
 

@@ -29,14 +29,6 @@ export async function removerTipoEvento(id: string) {
 }
 
 export async function inicializarTiposEventoPadrao() {
-  const padrao = [
-    { id: 'categorias', label: 'Categorias Principais', icone: '🎭', itens: ['Show', 'Ao vivo', 'Sarau', 'Teatro', 'Exposição', 'Gastronomia', 'Infantil', 'Festa', 'Cinema', 'Cultura Popular'], ordem: 1 },
-    { id: 'ritmos', label: 'Ritmos de Música', icone: '🎸', itens: ['Samba', 'Rock', 'MPB', 'Funk', 'Jazz', 'Indie', 'Reggae', 'Rap / Trap', 'Sertanejo', 'Forró', 'Pop', 'Blues'], ordem: 2 },
-    { id: 'teatro', label: 'Gêneros de Teatro', icone: '🏛️', itens: ['Musical', 'Comédia', 'Drama', 'Contemporâneo', 'Experimental'], ordem: 3 }
-  ];
-
-  for (const item of padrao) {
-    const { id, ...data } = item;
-    await salvarTipoEvento(id, data);
-  }
+  // Removida inicialização padrão conforme solicitado - Curadoria define os dados
+  return [];
 }

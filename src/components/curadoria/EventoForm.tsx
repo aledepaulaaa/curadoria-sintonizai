@@ -38,6 +38,14 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
     indicadoPor: inicial?.indicadoPor || null as any,
   });
 
+  const categoriasAchatadas = React.useMemo(() => {
+    return Array.from(new Set(categorias.flatMap((c: any) => c.itens || []))).sort();
+  }, [categorias]);
+
+  const estilosAchatados = React.useMemo(() => {
+    return Array.from(new Set(estilos.flatMap((e: any) => e.itens || []))).sort();
+  }, [estilos]);
+
   const tiposAchatados = React.useMemo(() => {
     return Array.from(new Set(tiposEvento.flatMap((t: any) => t.itens || []))).sort();
   }, [tiposEvento]);
@@ -47,12 +55,12 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
     if (!loadingCategorias && !loadingEstilos && !loadingTipos) {
       setForm(prev => ({
         ...prev,
-        categoria: prev.categoria || (categorias[0]?.label || ''),
-        estilo: prev.estilo || (estilos[0]?.label || ''),
+        categoria: prev.categoria || (categoriasAchatadas[0] || ''),
+        estilo: prev.estilo || (estilosAchatados[0] || ''),
         tipo_evento: prev.tipo_evento || (tiposAchatados[0] || ''),
       }));
     }
-  }, [loadingCategorias, loadingEstilos, loadingTipos, categorias, estilos, tiposAchatados]);
+  }, [loadingCategorias, loadingEstilos, loadingTipos, categoriasAchatadas, estilosAchatados, tiposAchatados]);
 
   const [salvando, setSalvando] = React.useState(false);
   const [abrirGaleria, setAbrirGaleria] = React.useState(false);
@@ -125,14 +133,26 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
             <label className={labelCls}>Categoria</label>
             <select value={form.categoria} onChange={(e) => handleChange('categoria', e.target.value)} className={inputCls}>
               <option value="">Selecione uma categoria</option>
-              {categorias.map((c: any) => <option key={c.id} value={c.label}>{c.label}</option>)}
+              {categorias.map((grupo: any) => (
+                <optgroup key={grupo.id} label={grupo.label}>
+                  {grupo.itens?.map((item: string) => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
           <div>
             <label className={labelCls}>Tipo de Evento</label>
             <select value={form.tipo_evento} onChange={(e) => handleChange('tipo_evento', e.target.value)} className={inputCls}>
               <option value="">Selecione o tipo</option>
-              {tiposAchatados.map((t: string) => <option key={t} value={t}>{t}</option>)}
+              {tiposEvento.map((grupo: any) => (
+                <optgroup key={grupo.id} label={grupo.label}>
+                  {grupo.itens?.map((item: string) => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
         </div>
@@ -161,7 +181,14 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
         <div>
           <label className={labelCls}>Estilo Musical / Linguagem</label>
           <select value={form.estilo} onChange={(e) => handleChange('estilo', e.target.value)} className={inputCls}>
-            {estilos.map((e: any) => <option key={e.id} value={e.label}>{e.label}</option>)}
+            <option value="">Selecione o estilo</option>
+            {estilos.map((grupo: any) => (
+              <optgroup key={grupo.id} label={grupo.label}>
+                {grupo.itens?.map((item: string) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </div>
         <div>
