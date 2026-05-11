@@ -119,24 +119,25 @@ export async function chatComGemini(
     ];
 
     const instruction = `
-Você é o Copiloto de Curadoria do app Sintonizaí.
-Sua missão é ajudar o curador a manter o banco de dados organizado, validado e de altíssima qualidade.
+Você é o Copiloto de Curadoria do app Sintonizaí. Sua missão é ser um assistente técnico preciso, objetivo e eficiente para o curador humano.
 
-REGRAS DE VALIDAÇÃO (CRÍTICO):
-1. DATAS: Use sempre o formato DD/MM/AAAA para exibição e YYYY-MM-DD para salvar. Valide se a data é futura.
-2. HORÁRIOS: Use sempre o formato HH:MM (ex: 20:00). Se for vago (ex: "oito da noite"), converta.
-3. DUPLICIDADE: Antes de salvar um novo evento, use 'buscar_eventos' pelo nome. Se já existir um evento com o mesmo nome na mesma data, alerte o curador e NÃO salve duplicado.
-4. TAXONOMIA (CASCATA): O evento DEVE seguir a hierarquia: Categoria > Tipo de Evento > Estilo.
-   - A Categoria deve existir na lista abaixo.
-   - O Tipo de Evento deve pertencer à Categoria escolhida.
-   - O Estilo deve pertencer ao Tipo de Evento escolhido.
-5. INTEGRIDADE DE DADOS E VALORES:
-   - NÃO ADIVINHE OU ESTIME HORÁRIOS/PREÇOS: Se a fonte original indicar "Confirmar no link", "A confirmar" ou algo incerto, você DEVE manter exatamente esse texto no JSON. NUNCA tente estimar (ex: 23:59 ou 10:00) para "satisfazer" o formato.
-   - Campos Obrigatórios com Incerteza: Se um campo obrigatório (como data) for totalmente desconhecido, avise o usuário. Para horários e preços, o texto "Confirmar no link" é perfeitamente aceitável e preferível a uma estimativa errada.
-   - Links de Imagem: Se o link da imagem estiver quebrado ou for inacessível, deixe o campo imagemUrl vazio ("") e informe o motivo.
-6. NOTA DA CURADORIA:
-   - Você pode incluir um campo "notaCuradoria" (máx 100 caracteres) com avisos importantes (ex: "Chegue cedo!", "Entrada permitida apenas com RG"). 
-   - SEMPRE que estiver salvando eventos (individuais ou massa), pergunte ao curador se ele deseja adicionar alguma nota de observação para os eventos antes de finalizar.
+COMPORTAMENTO GERAL (CRÍTICO):
+1. SEJA CONCISO: Responda com o mínimo de palavras necessário. Use bullet points. Não seja excessivamente cerimonioso.
+2. PERGUNTE PRIMEIRO: Se o usuário enviar um bloco de JSON ou lista de eventos sem instrução clara, pergunte imediatamente: "O que deseja fazer com este bloco?" (Opções: Salvar, Validar, Buscar Duplicados).
+3. OBJETIVIDADE: Se o usuário pedir algo vago, faça perguntas curtas e diretas para clarificar.
+4. FEEDBACK DE FERRAMENTAS: Sempre que usar uma ferramenta, informe o resultado exato (ex: "X eventos salvos, Y duplicados ignorados"). Nunca diga que salvou se a ferramenta retornar erro.
+
+REGRAS DE VALIDAÇÃO:
+1. DATAS: DD/MM/AAAA (exibição), YYYY-MM-DD (salvamento). Valide se é futura.
+2. HORÁRIOS: HH:MM ou "Confirmar no link". NUNCA ADIVINHE OU ESTIME. Se houver dúvida, mantenha "Confirmar no link".
+3. DUPLICIDADE: Sempre cheque 'buscar_eventos' antes de salvar. Se houver match de Nome + Data, alerte e não duplique.
+4. TAXONOMIA: Siga estritamente Categoria > Tipo > Estilo conforme as listas fornecidas.
+5. CAPACIDADE MASSIVA: Você pode processar lotes de até 350 eventos por vez. Para lotes maiores, divida o processamento e informe o progresso (ex: "Processando 1-50 de 350...").
+
+NOTA DA CURADORIA (notaCuradoria):
+- Máximo 100 caracteres.
+- Use para avisos vitais (troca de local, link externo, etc).
+- SEMPRE pergunte se o curador quer adicionar uma nota antes de salvar lotes.
 
 ESTRUTURA JSON ESPERADA (Exemplo):
 {
@@ -160,13 +161,13 @@ CAPACIDADES ESPECIAIS:
 3. EXTRAÇÃO: Use 'extrair_info_url' para processar links externos.
 
 VALORES VÁLIDOS (Use EXATAMENTE estes nomes de itens):
-CATEGORIAS (Por Grupos):
+CATEGORIAS:
 ${categoriasTexto}
 
-ESTILOS/RITMOS (Por Grupos):
+ESTILOS/RITMOS:
 ${estilosTexto}
 
-TIPOS DE EVENTOS (Por Grupos):
+TIPOS DE EVENTOS:
 ${tiposTexto}
 
 FLUXO DE TRABALHO:
@@ -175,9 +176,14 @@ FLUXO DE TRABALHO:
 `;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-3-flash-preview',
       systemInstruction: instruction,
-      tools: tools as any
+      tools: tools as any,
+      generationConfig: {
+        temperature: 0.1,
+        topP: 0.95,
+        maxOutputTokens: 8192,
+      }
     });
 
     const chat = model.startChat({
@@ -203,24 +209,24 @@ FLUXO DE TRABALHO:
         if (name === 'buscar_eventos') {
           const { query, tipo_evento, categoria, status } = args;
           let ref: any = adminDb.collection('eventos');
-          
+
           if (query) {
-             // Firestore doesn't support full text search well here, 
-             // but we can at least filter by other fields if provided.
+            // Firestore doesn't support full text search well here, 
+            // but we can at least filter by other fields if provided.
           }
-          
+
           if (tipo_evento) ref = ref.where('tipo_evento', '==', tipo_evento);
           if (categoria) ref = ref.where('categoria', '==', categoria);
           if (status) ref = ref.where('status', '==', status);
-          
+
           const snap = await ref.limit(50).get();
-          const eventos = snap.docs.map((d: any) => ({ 
-            id: d.id, 
-            nome: d.data().nome, 
-            tipo_evento: d.data().tipo_evento, 
-            categoria: d.data().categoria 
+          const eventos = snap.docs.map((d: any) => ({
+            id: d.id,
+            nome: d.data().nome,
+            tipo_evento: d.data().tipo_evento,
+            categoria: d.data().categoria
           }));
-          
+
           results.push({ name, response: { success: true, count: eventos.length, eventos } });
         }
 
@@ -253,7 +259,7 @@ FLUXO DE TRABALHO:
               .get();
 
             const diaNovo = ev.dataInicio?.split('T')[0];
-            
+
             const jaExiste = querySnap.docs.some(doc => {
               const d = doc.data();
               const dataMatch = d.dataInicio?.split('T')[0] === diaNovo;
@@ -277,14 +283,14 @@ FLUXO DE TRABALHO:
             }
           }
 
-          results.push({ 
-            name, 
-            response: { 
-              success: true, 
-              count: adicionados, 
+          results.push({
+            name,
+            response: {
+              success: true,
+              count: adicionados,
               skipped: duplicados,
-              message: `${adicionados} eventos novos salvos, ${duplicados} ignorados por já existirem.` 
-            } 
+              message: `${adicionados} eventos novos salvos, ${duplicados} ignorados por já existirem.`
+            }
           });
         }
 
@@ -293,7 +299,7 @@ FLUXO DE TRABALHO:
           try {
             const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
             const html = await res.text();
-            
+
             const getMeta = (tag: string) => {
               const regex = new RegExp(`<meta[^>]+(?:property|name)="${tag}"[^>]+content="([^"]+)"`, 'i');
               const match = html.match(regex);
@@ -318,7 +324,7 @@ FLUXO DE TRABALHO:
         }
       }
 
-      const finalResult = await chat.sendMessage([{ functionResponse: results[0] }] as any);
+      const finalResult = await chat.sendMessage(results.map(r => ({ functionResponse: r })) as any);
       const text = finalResult.response.text();
 
       return createSuccessResponse(text, { propostaAjuste } as any);

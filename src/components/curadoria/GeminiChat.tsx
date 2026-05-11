@@ -33,6 +33,7 @@ export default function GeminiChat() {
   const [novoTitulo, setNovoTitulo] = React.useState('');
   const [sidebarAberta, setSidebarAberta] = React.useState(true);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   // Fechar sidebar automaticamente no mobile ao carregar
   React.useEffect(() => {
@@ -129,6 +130,15 @@ export default function GeminiChat() {
     });
   };
 
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setLoading(false);
+      setStatusIA(null);
+      setError('Geração interrompida pelo usuário');
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !conversaAtiva) return;
@@ -152,24 +162,46 @@ export default function GeminiChat() {
     }
   };
 
-  const handleSend = async () => {
-    if ((!input.trim() && !imagemAnexada) || loading || !conversaAtiva) return;
+  const handleSend = async (customInput?: string, isRegenerate: boolean = false) => {
+    const textToUse = customInput ?? input.trim();
+    if ((!textToUse && !imagemAnexada) || loading || !conversaAtiva) return;
 
-    const textoEnvio = input.trim() || (imagemAnexada ? "Analise esta imagem e extraia os dados do evento." : "");
-    const userMsg: Message = { role: 'user', parts: [{ text: textoEnvio }] };
-    const novasMensagens = [...conversaAtiva.mensagens, userMsg];
+    const textoEnvio = textToUse || (imagemAnexada ? "Analise esta imagem e extraia os dados do evento." : "");
     
-    // Update local state immediately
+    let novasMensagens: Message[] = [];
+    
+    if (isRegenerate) {
+      // Remove a última mensagem do modelo (se existir)
+      novasMensagens = [...conversaAtiva.mensagens];
+      if (novasMensagens.length > 0 && novasMensagens[novasMensagens.length - 1].role === 'model') {
+        novasMensagens.pop();
+      }
+      // A última mensagem agora é do usuário, que será reprocessada
+    } else {
+      const userMsg: Message = { role: 'user', parts: [{ text: textoEnvio }] };
+      novasMensagens = [...conversaAtiva.mensagens, userMsg];
+    }
+    
     setConversaAtiva({ ...conversaAtiva, mensagens: novasMensagens });
-    setInput('');
+    if (!customInput) setInput('');
+    
     const imgParaEnviar = imagemAnexada;
     setImagemAnexada(null);
     setLoading(true);
     setStatusIA('IA pensando...');
     setError(null);
 
+    // Setup abort controller
+    abortControllerRef.current = new AbortController();
+
     try {
-      const response = await chatComGemini(novasMensagens, imgParaEnviar ? { data: imgParaEnviar.data, mimeType: imgParaEnviar.mimeType } : undefined);
+      const response = await chatComGemini(
+        novasMensagens, 
+        imgParaEnviar ? { data: imgParaEnviar.data, mimeType: imgParaEnviar.mimeType } : undefined
+      );
+
+      if (abortControllerRef.current?.signal.aborted) return;
+
       if (response.success && response.data) {
         const modelMsg: Message = { role: 'model', parts: [{ text: response.data }] };
         const finalMsgs = [...novasMensagens, modelMsg];
@@ -183,12 +215,30 @@ export default function GeminiChat() {
       } else {
         setError(response.error || 'Falha na resposta da IA');
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       setError('Erro de conexão com o servidor');
     } finally {
       setLoading(false);
       setStatusIA(null);
+      abortControllerRef.current = null;
     }
+  };
+
+  const handleEditLastMessage = () => {
+    if (!conversaAtiva || conversaAtiva.mensagens.length === 0) return;
+    
+    const lastUserMsgIndex = [...conversaAtiva.mensagens].reverse().findIndex(m => m.role === 'user');
+    if (lastUserMsgIndex === -1) return;
+    
+    const realIndex = conversaAtiva.mensagens.length - 1 - lastUserMsgIndex;
+    const lastText = conversaAtiva.mensagens[realIndex].parts[0].text;
+    
+    setInput(lastText);
+    
+    // Removemos do estado local para que o usuário sinta que está "editando"
+    const novasMensagens = conversaAtiva.mensagens.slice(0, realIndex);
+    setConversaAtiva({ ...conversaAtiva, mensagens: novasMensagens });
   };
 
   const handleConfirmarAjuste = async () => {
@@ -322,17 +372,33 @@ export default function GeminiChat() {
               <div className="flex items-center gap-1.5">
                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                  <span className="text-[10px] font-bold text-zinc-500 uppercase">IA Vision Ativa</span>
+                 {conversaAtiva?.chatId && (
+                   <>
+                    <span className="text-[10px] text-zinc-300 mx-1">|</span>
+                    <span className="text-[10px] font-mono text-zinc-400">ID: {conversaAtiva.chatId}</span>
+                   </>
+                 )}
               </div>
             </div>
           </div>
 
-          <button 
-            onClick={() => setModalAjuda(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm"
-          >
-            <FileText size={14} className="text-purple-600" />
-            Exemplo JSON
-          </button>
+          <div className="flex items-center gap-2">
+            {loading && (
+              <button 
+                onClick={handleStop}
+                className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-950 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition-all border border-red-200"
+              >
+                <X size={14} /> Stop
+              </button>
+            )}
+            <button 
+              onClick={() => setModalAjuda(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all shadow-sm"
+            >
+              <FileText size={14} className="text-purple-600" />
+              Guia JSON
+            </button>
+          </div>
         </div>
 
         {/* Messages */}
@@ -369,14 +435,32 @@ export default function GeminiChat() {
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                       msg.role === 'user' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' : 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
                     }`}>
-                      {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                        {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                     </div>
-                    <div className={`p-4 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed ${
-                      msg.role === 'user' 
-                        ? 'bg-zinc-900 dark:bg-white text-white dark:text-black font-medium rounded-tr-none' 
-                        : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-100 dark:border-zinc-700/50 shadow-sm'
-                    }`}>
-                      {msg.parts[0].text}
+                    <div className="flex flex-col gap-1">
+                      <div className={`p-4 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed transition-all duration-300 hover:shadow-md hover:bg-white dark:hover:bg-zinc-800/80 ${
+                        msg.role === 'user' 
+                          ? 'bg-zinc-900 dark:bg-white text-white dark:text-black font-medium rounded-tr-none' 
+                          : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-100 dark:border-zinc-700/50 shadow-sm'
+                      }`}>
+                        {msg.parts[0].text}
+                      </div>
+                      {msg.role === 'user' && i === conversaAtiva.mensagens.length - 2 && !loading && (
+                        <div className="flex justify-end gap-2 mt-1">
+                          <button 
+                            onClick={handleEditLastMessage}
+                            className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1"
+                          >
+                            <Edit3 size={10} /> Editar
+                          </button>
+                          <button 
+                            onClick={() => handleSend(undefined, true)}
+                            className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1"
+                          >
+                            <History size={10} /> Refazer
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -385,21 +469,34 @@ export default function GeminiChat() {
           )}
 
           {loading && (
-            <div className="flex justify-start">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex justify-start"
+            >
                <div className="flex gap-3">
                   <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                      <Loader2 size={16} className="animate-spin" />
                   </div>
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex flex-col gap-2">
-                     <div className="flex gap-1">
-                        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" />
-                        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex flex-col gap-2 min-w-[200px] border border-zinc-100 dark:border-zinc-700/50 shadow-sm relative overflow-hidden">
+                     {/* Shimmer Effect */}
+                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+                     
+                     <div className="flex gap-1.5 items-center">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:0s]" />
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                        <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest ml-2">
+                          {statusIA || 'Processando'}
+                        </span>
                      </div>
-                     {statusIA && <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest animate-pulse">{statusIA}</span>}
+                     <div className="space-y-1.5">
+                        <div className="h-2 w-full bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse" />
+                        <div className="h-2 w-2/3 bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse" />
+                     </div>
                   </div>
                </div>
-            </div>
+            </motion.div>
           )}
 
           {error && (
@@ -411,6 +508,27 @@ export default function GeminiChat() {
             </div>
           )}
         </div>
+
+        {/* Botões de Comando Rápido */}
+        {conversaAtiva && !loading && (
+          <div className="px-6 py-2 bg-zinc-50/50 dark:bg-zinc-900/30 border-t border-zinc-100 dark:border-zinc-800 flex gap-2 overflow-x-auto no-scrollbar">
+            {[
+              { label: 'Salvar Lote', cmd: 'Salvar estes eventos salvando lote por lote' },
+              { label: 'Validar Dados', cmd: 'Valide os dados destes eventos e aponte erros' },
+              { label: 'Duplicidade', cmd: 'Verificar se estes eventos já existem no banco' },
+              { label: 'Extrair Link', cmd: 'Extraia as informações deste link' },
+              { label: 'Sugestão Notas', cmd: 'Sugira notas de curadoria para estes eventos' }
+            ].map(btn => (
+              <button
+                key={btn.label}
+                onClick={() => handleSend(btn.cmd)}
+                className="whitespace-nowrap px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:border-purple-500 hover:text-purple-600 transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <Zap size={10} /> {btn.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Input */}
         <div className="p-6 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800">
@@ -458,7 +576,7 @@ export default function GeminiChat() {
                 className="flex-1 px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-purple-500 shadow-sm resize-none min-h-[46px] max-h-[150px] overflow-y-auto"
               />
               <button 
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={loading || (!input.trim() && !imagemAnexada) || !conversaAtiva}
                 className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 disabled:opacity-50 transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center"
               >

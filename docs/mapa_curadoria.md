@@ -1,9 +1,9 @@
-# Mapa Curadoria Sintonizaí - v2.6
+# Mapa Curadoria Sintonizaí - v2.8
 
 ## 🧠 Inteligência & Ingestão
-- **Gemini Chat**: Copiloto para análise de links, extração de metadados e salvamento inteligente (Proibição de estimativas e checagem de duplicidade). Agora com prompt proativo para inclusão de **Notas da Curadoria**.
-- **Nota da Curadoria**: Nova propriedade `notaCuradoria` (máx 100 caracteres) para avisos importantes com destaque visual no App.
-- **Melhorias de UX Chat**: Suporte a quebra de linha com Shift+Enter no desktop e Enter no mobile, além de scroll automático inteligente.
+- **Gemini Chat (v3.0)**: Upgrade para `gemini-3-flash-preview`. Copiloto de alta performance para processamento em massa (até 350 eventos/lote). Proibição de estimativas e checagem de duplicidade rigorosa.
+- **Controles IA Premium**: Botões de comando rápido (Quick Actions), Stop, Regenerar e Editar última mensagem, otimizados para uso mobile.
+- **Nota da Curadoria**: Propriedade `notaCuradoria` (máx 100 caracteres) para avisos com destaque visual (amarelo/alerta) no App.
 - **Taxonomia Hierárquica**: Gestão 3 níveis (Categoria > Tipo > Estilo) em cascata.
 - **Estabilidade de Mídias**: Gestão centralizada de `storage.rules` com acesso público para a pasta `/eventos/`, eliminando quebras de imagem na galeria e previews.
  a coleção `eventos` do Firestore, compartilhada com o app mobile.
@@ -13,7 +13,7 @@
 ```
 ┌───────────────────┐
 │   Painel CMS      │ ← Server Actions (Firebase Admin)
-│   (Next.js 16)    │ ↔ Agente IA (Gemini 1.5 Flash)
+│   (Next.js 16)    │ ↔ Agente IA (Gemini 3 Flash)
 └────────┬──────────┘
          │ CRUD & Function Calling
          ▼
@@ -77,8 +77,8 @@ O ecossistema opera sobre metadados totalmente dinâmicos:
 
 ## Evoluções Concluídas
 - [x] **Taxonomia Hierárquica 2.0**: Sincronização absoluta entre App, Portal e IA via metadados dinâmicos e seletores em cascata.
-- [x] **Qualidade Assistida**: Modal de ajuda JSON e IA resiliente a erros de imagem.
-- [x] **Auditoria Visual**: Dashboards e tabelas focados em integridade de dados (Taxonomia e Qualidade).
+- [x] **IA Agentic v3**: Implementação de `gemini-3-flash-preview` com controles de regeneração, edição e stop.
+- [x] **Mass Actions**: Capacidade de processar e salvar lotes massivos de até 350 eventos com um único comando IA.
 
 ## Evoluções Futuras
 1. Notificações push automáticas segmentadas por interesse de Estilo/Categoria.

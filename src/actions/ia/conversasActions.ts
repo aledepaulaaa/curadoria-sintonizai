@@ -7,6 +7,7 @@ const COLLECTION = 'conversas_ia';
 
 export interface ConversaIA {
   id: string;
+  chatId: string;
   titulo: string;
   mensagens: { role: 'user' | 'model', parts: { text: string }[] }[];
   criadoEm: string;
@@ -21,6 +22,7 @@ export async function listarConversasIA(): Promise<ConversaIA[]> {
 export async function criarConversaIA(titulo: string = 'Nova Conversa'): Promise<ActionResponse<ConversaIA>> {
   try {
     const data = {
+      chatId: `chat_${Math.random().toString(36).substring(2, 11)}_${Date.now().toString(36)}`,
       titulo,
       mensagens: [],
       criadoEm: new Date().toISOString(),
