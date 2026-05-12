@@ -1,5 +1,17 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [2.7] — 2026-05-11 — Upgrade Gemini 3 e Controles Avançados
+### ✨ Funcionalidades
+- **Upgrade Gemini 3 Flash**: Implementação do modelo `gemini-3-flash-preview`. Otimizado para processamento massivo de eventos com maior precisão e menor latência.
+- **Quick Actions (Mobile Optimization)**: Adicionados botões de comando rápido ("Processar Bloco", "Extrair Eventos", "Verificar Duplicados") para agilizar a curadoria em dispositivos móveis.
+- **Controle de Sessão IA**: Implementado botão **"Parar" (Stop)** para interromper gerações indesejadas e botão **"Regenerar"** para reprocessar a última solicitação com um único clique.
+- **Edição de Prompts**: Agora é possível editar a última mensagem enviada, permitindo ajustes rápidos sem precisar reescrever todo o contexto.
+
+### 🛠️ Melhorias Técnicas
+- **Estabilização de API**: Configuração do `generationConfig` e `tools` padronizada para evitar erros de parâmetros desconhecidos (400 Bad Request) em modelos experimentais.
+- **Orquestração de Lote**: IA treinada para lidar com blocos de até 350 eventos, mantendo a integridade da taxonomia hierárquica em cascata.
+
+
 ## [2.6] — 2026-05-10 — Notas da Curadoria e Comunicação Proativa
 ### ✨ Funcionalidades
 - **Notas da Curadoria**: Adicionada a propriedade `notaCuradoria` (até 100 caracteres) em todo o ecossistema. Permite que curadores insiram avisos importantes que aparecem com destaque visual (badge e cor de alerta) nos cards e detalhes do evento no App.
