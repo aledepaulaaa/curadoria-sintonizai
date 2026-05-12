@@ -1,18 +1,28 @@
 import React from 'react';
 import { Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 import { uploadArquivoStorage } from '@/src/actions/storage/storageActions';
+import { ImageEditor } from './ImageEditor';
+import { AnimatePresence } from 'framer-motion';
 
 interface ImageUploadProps {
   value: string;
   onChange: (url: string) => void;
   folder?: string;
+  aspectRatio?: number;
 }
 
-export default function ImageUpload({ value, onChange, folder = 'eventos' }: ImageUploadProps) {
+export default function ImageUpload({ 
+  value, 
+  onChange, 
+  folder = 'eventos',
+  aspectRatio = 16 / 9 
+}: ImageUploadProps) {
   const [carregando, setCarregando] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
+  const [imagemParaEditar, setImagemParaEditar] = React.useState<string | null>(null);
+  const [nomeArquivoOriginal, setNomeArquivoOriginal] = React.useState('');
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSelecionarArquivo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -21,27 +31,39 @@ export default function ImageUpload({ value, onChange, folder = 'eventos' }: Ima
       return;
     }
 
+    setNomeArquivoOriginal(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImagemParaEditar(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    // Limpa o input para permitir selecionar o mesmo arquivo novamente se necessário
+    e.target.value = '';
+  };
+
+  const handleConfirmarCorte = async (blob: Blob) => {
+    setImagemParaEditar(null);
     setCarregando(true);
     setErro(null);
 
     try {
-      // Converte para base64 para enviar via Server Action
+      // Converte o blob recortado para base64 para o Server Action
       const reader = new FileReader();
       const base64Promise = new Promise<string>((resolve) => {
         reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(blob);
       });
 
       const base64 = await base64Promise;
-      const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+      const fileName = `${Date.now()}_cropped_${nomeArquivoOriginal.replace(/\s+/g, '_')}`;
 
-      // Usa a Server Action que tem permissão de Admin e torna público
+      // Upload para o Firebase Storage
       const url = await uploadArquivoStorage(base64, fileName, `${folder}/`);
-
       onChange(url);
     } catch (err) {
-      console.error('Erro no upload:', err);
-      setErro('Falha ao enviar imagem (Erro de permissão).');
+      console.error('Erro no upload da imagem cortada:', err);
+      setErro('Falha ao enviar imagem cortada.');
     } finally {
       setCarregando(false);
     }
@@ -77,18 +99,30 @@ export default function ImageUpload({ value, onChange, folder = 'eventos' }: Ima
                 <div className="p-3 bg-zinc-200 dark:bg-zinc-800 rounded-2xl">
                   <Upload size={24} />
                 </div>
-                <div className="text-center">
+                <div className="text-center p-4">
                   <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">Clique para enviar</span>
-                  <p className="text-xs text-zinc-500">PNG, JPG ou WEBP</p>
+                  <p className="text-xs text-zinc-500">PNG, JPG ou WEBP (Será ajustado para {aspectRatio === 1 ? '1:1' : '16:9'})</p>
                 </div>
               </div>
             )}
-            <input type="file" className="hidden" accept="image/*" onChange={handleUpload} disabled={carregando} />
+            <input type="file" className="hidden" accept="image/*" onChange={handleSelecionarArquivo} disabled={carregando} />
           </label>
         )}
       </div>
 
       {erro && <p className="text-xs text-red-500 font-medium">{erro}</p>}
+
+      {/* Editor de Imagem */}
+      <AnimatePresence>
+        {imagemParaEditar && (
+          <ImageEditor
+            imageSrc={imagemParaEditar}
+            aspectRatio={aspectRatio}
+            onConfirm={handleConfirmarCorte}
+            onCancel={() => setImagemParaEditar(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

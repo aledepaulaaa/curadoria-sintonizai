@@ -1,5 +1,29 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [2.9] — 2026-05-12 — Image Editor e Padronização Visual
+### ✨ Funcionalidades
+- **Image Editor Integrado**: Implementação de um motor de corte e ajuste de imagens (`react-easy-crop`) no fluxo de upload. O sistema agora força o enquadramento correto (16:9 para eventos) antes de enviar para o servidor.
+- **Preview de Ajuste**: Interface visual que permite ao curador arrastar, dar zoom e centralizar o melhor ângulo da imagem do evento.
+- **Geração de Blob Otimizado**: O sistema gera uma nova imagem recortada via Canvas API, garantindo que o arquivo final no Storage esteja perfeitamente padronizado.
+
+### 🛠️ Melhorias Técnicas
+- **Hook `useImageEditor`**: Criada lógica desacoplada para processamento de imagens, facilitando a reutilização do motor de corte em outros módulos (Banners, Perfis).
+- **Componente `ImageEditor`**: UI premium com animações `framer-motion`, controles de zoom e suporte a múltiplos *aspect ratios*.
+- **Intercepção de Upload**: O componente `ImageUpload` foi refatorado para pausar o envio, abrir o editor e só prosseguir com o upload após a confirmação do recorte pelo usuário.
+
+## [2.8] — 2026-05-12 — Resiliência IA e Experiência Expansível
+### ✨ Funcionalidades
+- **Modo Fullscreen (IA Chat)**: Adicionado botão de expansão para que o chat ocupe toda a viewport (`fixed inset-4`), facilitando a visualização de longas conversas e grandes blocos de dados.
+- **Input Redimensionável**: O campo de texto do chat agora permite redimensionamento vertical (`resize-y`) e utiliza fonte monoespaçada, otimizando a colagem e conferência de códigos JSON.
+- **Botão Copiar Rápido**: Implementado botão de "Copiar" em cada balão de mensagem da IA, contornando a dificuldade de seleção de texto em dispositivos touch.
+- **Validação de Links Relaxada**: Atualizada a lógica de `validarLinkIngresso` para permitir perfis de redes sociais (Instagram/Facebook) e árvores de links, garantindo que o botão "Acessar Evento" esteja sempre disponível para links válidos.
+
+### 🛠️ Melhorias Técnicas
+- **Inteligência de Lote (JSONs Soltos)**: Atualizadas as *System Instructions* do Gemini para suportar múltiplos objetos JSON enviados sem formatação de array `[]`, interpretando-os automaticamente como um lote único.
+- **Otimização de Tool Calling**: Delegada a responsabilidade de checagem de duplicidade exclusivamente para a ferramenta `salvar_evento_no_firestore`, reduzindo o número de chamadas redundantes e eliminando falhas em grandes payloads.
+- **UX Mobile Fix**: Refatoração do layout do chat com `h-[calc(100vh-240px)]`, `min-h-0` e remoção de efeitos de `hover` que prejudicavam a legibilidade em modo claro/escuro no celular.
+- **Logs de Depuração**: Implementado sistema de logs detalhados no terminal local para monitorar `Gemini Request`, `Tool Call` e `Google API Details`.
+
 ## [2.7] — 2026-05-11 — Upgrade Gemini 3 e Controles Avançados
 ### ✨ Funcionalidades
 - **Upgrade Gemini 3 Flash**: Implementação do modelo `gemini-3-flash-preview`. Otimizado para processamento massivo de eventos com maior precisão e menor latência.

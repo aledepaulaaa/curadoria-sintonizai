@@ -1,6 +1,7 @@
-# Mapa Curadoria Sintonizaí - v2.9
+# Mapa Curadoria Sintonizaí - v3.0
 
 ## 🧠 Inteligência & Ingestão
+- **Image Editor (v1.0)**: Motor de corte (`react-easy-crop`) integrado ao upload. Força proporção 16:9 para eventos e 1:1 para perfis, garantindo integridade visual no App.
 - **Gemini Chat (v3.1)**: Suporte a **formatos flexíveis** (JSONs soltos sem array). IA agora gerencia duplicidade via ferramenta, eliminando buscas redundantes.
 - **Experiência Expansível**: Chat com modo **Full Screen** (`Maximize2`) e input redimensionável (`resize-y`) com fonte `mono` para edição técnica.
 - **UX Mobile Premium**: Altura dinâmica `calc(100vh-240px)`, scroll interno travado, remoção de estados de hover e botões de **Cópia Rápida** em cada balão de mensagem.
