@@ -274,7 +274,7 @@ export default function GeminiChat() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-280px)] min-h-[500px] md:h-[700px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xl overflow-hidden relative">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-240px)] md:h-[700px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xl overflow-hidden relative">
       {/* Overlay para fechar sidebar no mobile */}
       {sidebarAberta && window.innerWidth < 768 && (
         <div 
@@ -354,7 +354,7 @@ export default function GeminiChat() {
       </motion.div>
 
       {/* Área do Chat */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Header */}
         <div className="px-4 md:px-6 py-4 bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3 w-full md:w-auto">
@@ -412,7 +412,11 @@ export default function GeminiChat() {
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 scroll-smooth bg-white dark:bg-zinc-900">
+        <div 
+          ref={scrollRef} 
+          className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 scroll-smooth bg-white dark:bg-zinc-900 min-h-0"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {!conversaAtiva ? (
             <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
               <Bot size={48} className="text-zinc-300 dark:text-zinc-700" />
