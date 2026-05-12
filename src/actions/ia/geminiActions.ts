@@ -130,9 +130,10 @@ COMPORTAMENTO GERAL (CRÍTICO):
 REGRAS DE VALIDAÇÃO:
 1. DATAS: DD/MM/AAAA (exibição), YYYY-MM-DD (salvamento). Valide se é futura.
 2. HORÁRIOS: HH:MM ou "Confirmar no link". NUNCA ADIVINHE OU ESTIME. Se houver dúvida, mantenha "Confirmar no link".
-3. DUPLICIDADE: Sempre cheque 'buscar_eventos' antes de salvar. Se houver match de Nome + Data, alerte e não duplique.
+3. DUPLICIDADE: A ferramenta 'salvar_evento_no_firestore' JÁ CHECA DUPLICATAS AUTOMATICAMENTE. Não é necessário usar 'buscar_eventos' antes de salvar novos eventos, a menos que o usuário peça explicitamente para verificar antes.
 4. TAXONOMIA: Siga estritamente Categoria > Tipo > Estilo conforme as listas fornecidas.
 5. CAPACIDADE MASSIVA: Você pode processar lotes de até 350 eventos por vez. Para lotes maiores, divida o processamento e informe o progresso (ex: "Processando 1-50 de 350...").
+6. FORMATOS FLEXÍVEIS: Se receber múltiplos blocos JSON soltos (mesmo sem estar dentro de um array []), interprete-os como um lote de eventos e use 'salvar_evento_no_firestore' para processá-los todos de uma vez.
 
 NOTA DA CURADORIA (notaCuradoria):
 - Máximo 100 caracteres.
@@ -195,6 +196,7 @@ FLUXO DE TRABALHO:
       lastMessageParts.push({ inlineData: { data: imagem.data, mimeType: imagem.mimeType } });
     }
 
+    console.log(`[Gemini Request] Enviando solicitação...`);
     const result = await chat.sendMessage(lastMessageParts);
     const response = await result.response;
     const calls = response.candidates?.[0]?.content?.parts?.filter(p => p.functionCall);
@@ -205,6 +207,7 @@ FLUXO DE TRABALHO:
 
       for (const call of calls) {
         const { name, args } = call.functionCall as any;
+        console.log(`[Tool Call] Executando: ${name}`, args);
 
         if (name === 'buscar_eventos') {
           const { query, tipo_evento, categoria, status } = args;

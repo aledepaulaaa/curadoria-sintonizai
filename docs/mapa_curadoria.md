@@ -1,7 +1,10 @@
-# Mapa Curadoria Sintonizaí - v2.8
+# Mapa Curadoria Sintonizaí - v2.9
 
 ## 🧠 Inteligência & Ingestão
-- **Gemini Chat (v3.0)**: Upgrade para `gemini-3-flash-preview`. Copiloto de alta performance para processamento em massa (até 350 eventos/lote). Proibição de estimativas e checagem de duplicidade rigorosa.
+- **Gemini Chat (v3.1)**: Suporte a **formatos flexíveis** (JSONs soltos sem array). IA agora gerencia duplicidade via ferramenta, eliminando buscas redundantes.
+- **Experiência Expansível**: Chat com modo **Full Screen** (`Maximize2`) e input redimensionável (`resize-y`) com fonte `mono` para edição técnica.
+- **UX Mobile Premium**: Altura dinâmica `calc(100vh-240px)`, scroll interno travado, remoção de estados de hover e botões de **Cópia Rápida** em cada balão de mensagem.
+- **Validação de Links Relaxada**: Motor de linking inteligente que prioriza a acessibilidade do evento (permite perfis de Instagram, Facebook e bios).
 - **Controles IA Premium**: Botões de comando rápido (Quick Actions), Stop, Regenerar e Editar última mensagem, otimizados para uso mobile.
 - **Nota da Curadoria**: Propriedade `notaCuradoria` (máx 100 caracteres) para avisos com destaque visual (amarelo/alerta) no App.
 - **Taxonomia Hierárquica**: Gestão 3 níveis (Categoria > Tipo > Estilo) em cascata.

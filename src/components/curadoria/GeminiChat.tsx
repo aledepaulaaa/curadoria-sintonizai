@@ -13,7 +13,7 @@ import {
 import { 
   Send, Loader2, Bot, User, Sparkles, AlertCircle, 
   Plus, History, Edit3, Trash2, FileText, Paperclip, X,
-  Check, ArrowRight, Zap, Copy
+  Check, ArrowRight, Zap, Copy, Maximize2, Minimize2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
@@ -25,13 +25,14 @@ interface Message {
 
 export default function GeminiChat() {
   const [conversas, setConversas] = React.useState<ConversaIA[]>([]);
+  const [sidebarAberta, setSidebarAberta] = React.useState(true);
+  const [expandido, setExpandido] = React.useState(false);
   const [conversaAtiva, setConversaAtiva] = React.useState<ConversaIA | null>(null);
   const [input, setInput] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [editandoTitulo, setEditandoTitulo] = React.useState<string | null>(null);
   const [novoTitulo, setNovoTitulo] = React.useState('');
-  const [sidebarAberta, setSidebarAberta] = React.useState(true);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
@@ -213,11 +214,13 @@ export default function GeminiChat() {
           setPropostaAjuste(response.metadata.propostaAjuste);
         }
       } else {
-        setError(response.error || 'Falha na resposta da IA');
+        const msgErro: Message = { role: 'model', parts: [{ text: `Desculpe, ocorreu uma falha na IA: ${response.error || 'Erro desconhecido'}. Por favor, tente novamente.` }] };
+        setConversaAtiva(prev => prev ? { ...prev, mensagens: [...novasMensagens, msgErro] } : null);
       }
-    } catch (err: any) {
-      if (err.name === 'AbortError') return;
-      setError('Erro de conexão com o servidor');
+    } catch (error: any) {
+      console.error("[Error in chatComGemini]:", error);
+      const msgErro: Message = { role: 'model', parts: [{ text: `Desculpe, ocorreu uma falha na IA: ${error.message || 'Erro desconhecido'}. Por favor, tente novamente.` }] };
+      setConversaAtiva(prev => prev ? { ...prev, mensagens: [...(prev.mensagens || []), msgErro] } : null);
     } finally {
       setLoading(false);
       setStatusIA(null);
@@ -274,7 +277,11 @@ export default function GeminiChat() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-240px)] md:h-[700px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xl overflow-hidden relative">
+    <div className={`flex flex-col md:flex-row transition-all duration-500 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xl overflow-hidden relative ${
+      expandido 
+        ? 'fixed inset-4 z-[100] h-[calc(100vh-32px)]' 
+        : 'h-[calc(100vh-240px)] md:h-[700px]'
+    }`}>
       {/* Overlay para fechar sidebar no mobile */}
       {sidebarAberta && window.innerWidth < 768 && (
         <div 
@@ -393,6 +400,13 @@ export default function GeminiChat() {
           </div>
 
           <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <button 
+              onClick={() => setExpandido(!expandido)}
+              className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 transition-colors"
+              title={expandido ? "Minimizar" : "Expandir Chat"}
+            >
+              {expandido ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
             {loading && (
               <button 
                 onClick={handleStop}
@@ -599,7 +613,7 @@ export default function GeminiChat() {
                 }}
                 rows={1}
                 placeholder={conversaAtiva ? "Pergunte ou anexe..." : "Selecione..."}
-                className="flex-1 px-3 md:px-4 py-2 md:py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[13px] md:text-sm text-zinc-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-purple-500 shadow-sm resize-none min-h-[40px] md:min-h-[46px] max-h-[120px] md:max-h-[150px] overflow-y-auto"
+                className="flex-1 px-3 md:px-4 py-2 md:py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[13px] md:text-sm text-zinc-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-purple-500 shadow-sm resize-y min-h-[40px] md:min-h-[46px] max-h-[300px] md:max-h-[500px] overflow-y-auto font-mono"
               />
               <button 
                 onClick={() => handleSend()}
