@@ -13,7 +13,7 @@ import {
 import { 
   Send, Loader2, Bot, User, Sparkles, AlertCircle, 
   Plus, History, Edit3, Trash2, FileText, Paperclip, X,
-  Check, ArrowRight, Zap
+  Check, ArrowRight, Zap, Copy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
@@ -441,29 +441,40 @@ export default function GeminiChat() {
                         {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                     </div>
                     <div className="flex flex-col gap-1">
-                      <div className={`p-3 md:p-4 rounded-2xl text-[12px] md:text-sm whitespace-pre-wrap leading-relaxed transition-all duration-300 hover:shadow-md hover:bg-white dark:hover:bg-zinc-800/80 ${
+                      <div className={`p-3 md:p-4 rounded-2xl text-[12px] md:text-sm whitespace-pre-wrap leading-relaxed transition-all duration-300 ${
                         msg.role === 'user' 
                           ? 'bg-zinc-900 dark:bg-white text-white dark:text-black font-medium rounded-tr-none' 
                           : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-100 dark:border-zinc-700/50 shadow-sm'
                       }`}>
                         {msg.parts[0].text}
                       </div>
-                      {msg.role === 'user' && i === conversaAtiva.mensagens.length - 2 && !loading && (
-                        <div className="flex justify-end gap-2 mt-1">
-                          <button 
-                            onClick={handleEditLastMessage}
-                            className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1"
-                          >
-                            <Edit3 size={10} /> Editar
-                          </button>
-                          <button 
-                            onClick={() => handleSend(undefined, true)}
-                            className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1"
-                          >
-                            <History size={10} /> Refazer
-                          </button>
-                        </div>
-                      )}
+                      <div className={`flex gap-3 mt-1 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(msg.parts[0].text);
+                          }}
+                          className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1 transition-colors"
+                        >
+                          <Copy size={10} /> Copiar
+                        </button>
+                        
+                        {msg.role === 'user' && i === conversaAtiva.mensagens.length - 2 && !loading && (
+                          <>
+                            <button 
+                              onClick={handleEditLastMessage}
+                              className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1 transition-colors"
+                            >
+                              <Edit3 size={10} /> Editar
+                            </button>
+                            <button 
+                              onClick={() => handleSend(undefined, true)}
+                              className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1 transition-colors"
+                            >
+                              <History size={10} /> Refazer
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </motion.div>
