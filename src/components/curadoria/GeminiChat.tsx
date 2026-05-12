@@ -274,7 +274,14 @@ export default function GeminiChat() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-[85vh] md:h-[700px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xl overflow-hidden relative">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-280px)] min-h-[500px] md:h-[700px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-xl overflow-hidden relative">
+      {/* Overlay para fechar sidebar no mobile */}
+      {sidebarAberta && window.innerWidth < 768 && (
+        <div 
+          className="absolute inset-0 bg-black/20 backdrop-blur-sm z-10 md:hidden"
+          onClick={() => setSidebarAberta(false)}
+        />
+      )}
       {/* Sidebar de Histórico */}
       <motion.div 
         initial={false}
