@@ -1,5 +1,14 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [3.6] — 2026-05-13 — Módulo de Automações (Régua de Engajamento)
+### ✨ Funcionalidades
+- **Gestão de Automações**: Nova interface para criação de réguas de comunicação "estilo iFood".
+- **Gatilhos Inteligentes**: Suporte a gatilhos comportamentais (usuário inativo, ingresso acabando) e temporais (periódicos).
+- **Formulário Dinâmico**: Interface que adapta campos baseada no tipo de automação selecionada.
+- **Preview de Push**: Visualização em tempo real da notificação configurada.
+- **Configuração de Frequência**: Agendamento de disparos diários, semanais ou únicos.
+
+
 ## [3.5] — 2026-05-13 — Engine de Banners e Preview Real-time
 ### ✨ Funcionalidades
 - **Controle Dinâmico**: Adicionados campos para customização de textos de status (Badges) e botões de ação para banners.
