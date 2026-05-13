@@ -1,4 +1,4 @@
-# Mapa Curadoria Sintonizaí - v3.1
+# Mapa Curadoria Sintonizaí - v3.4
 
 ## 🧠 Inteligência & Ingestão
 - **Image Editor (v1.0)**: Motor de corte (`react-easy-crop`) integrado ao upload. Força proporção 16:9 para eventos e 1:1 para perfis, garantindo integridade visual no App.
@@ -10,8 +10,8 @@
 - **Nota da Curadoria**: Propriedade `notaCuradoria` (máx 100 caracteres) para avisos com destaque visual (amarelo/alerta) no App.
 - **Taxonomia Hierárquica**: Gestão 3 níveis (Categoria > Tipo > Estilo) em cascata.
 - **Estabilidade de Mídias**: Gestão centralizada de `storage.rules` com acesso público para a pasta `/eventos/`, eliminando quebras de imagem na galeria e previews.
-- **Hub da Comunidade (v1.0)**: Central de gestão de reports e indicações. Permite analisar, resolver e notificar usuários sobre o status de suas contribuições.
-- **Push Notification Composer**: Interface premium para envio de mensagens broadcast ou segmentadas (User ID). Suporte a deep links (Evento/Perfil) e preview mobile em tempo real.
+- **Hub da Comunidade (v1.0)**: Central de gestão de reports e indicações. Exibe metadados estendidos do usuário (**Email, UID, Telefone/WhatsApp**) para facilitar a comunicação direta e validação de informações. Permite analisar, resolver e notificar usuários sobre o status de suas contribuições.
+- **Push Notification Composer**: Interface premium para envio de mensagens broadcast ou segmentadas. Inclui **User Selector inteligente** com busca em tempo real (Nome/UID) e pre-carregamento de perfis. Suporte a deep links (Evento/Perfil) e preview mobile em tempo real.
 - **Notificação Visual (Sino)**: Ícone de sino animado (`animate-ring`) com badge dinâmico (`naoLidas`) integrando Reports e Indicações pendentes.
 
 ## Diagrama de Fluxo

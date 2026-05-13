@@ -130,6 +130,7 @@ export default function AnunciosPage() {
                   value={form.imagemFundo} 
                   onChange={(url) => setForm({ ...form, imagemFundo: url })} 
                   folder="banners"
+                  aspectRatio={16 / 9}
                 />
               </div>
 

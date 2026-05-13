@@ -1,5 +1,27 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [3.4] — 2026-05-13 — Padronização de Mídias e Design System
+### ✨ Funcionalidades
+- **Editor de Banners 16:9**: O fluxo de criação de banners agora força obrigatoriamente a proporção 16:9. O `ImageEditor` abre automaticamente com o enquadramento correto, garantindo que todo novo destaque siga o padrão visual do app.
+- **Ajuste de Padding & Gap**: Sincronização dos espaçamentos internos do painel com o novo layout do App para previews mais fiéis.
+
+## [3.3] — 2026-05-13 — Engine de Notificações e Precisão Temporal
+### ✨ Funcionalidades
+- **Notificações Push Automatizadas**: Implementada integração com o novo sistema de lembretes do App. O painel agora suporta a visualização de gatilhos agendados para usuários específicos.
+- **Sincronização de Data Local**: O portal agora utiliza a mesma lógica de normalização `getLocalISO` para garantir que as datas exibidas na curadoria correspondam exatamente ao que o usuário vê no dispositivo mobile.
+- **Seletor de Usuário Finalizado**: Polimento do seletor de "Usuário Específico" com suporte total a busca por UID e Nome, integrado ao fluxo de disparo de Push.
+
+## [3.2] — 2026-05-13 — Seletor de Usuário e Visibilidade Estendida
+### ✨ Funcionalidades
+- **Push User Selector**: O compositor de notificações push agora conta com um seletor inteligente. Ao escolher "Usuário Específico", o sistema carrega automaticamente os perfis do banco e permite busca em tempo real por nome ou UID, exibindo fotos de perfil para identificação rápida.
+- **Detalhamento de Contato (Comunidade)**: A lista de indicações agora exibe o perfil completo do autor: **Email, UID e Telefone/WhatsApp**. Isso permite que o curador entre em contato via WhatsApp com um único clique para validar detalhes do evento sugerido.
+- **Sincronização de Perfil**: Adicionado suporte para exibição do campo `telefone` na tabela de usuários e nos modais de detalhe, integrando os novos dados capturados pelo aplicativo mobile.
+
+### 🛠️ Melhorias Técnicas
+- **Filtro de Busca Debounced**: Implementada lógica de debounce no seletor de usuários para evitar excesso de requisições ao Firestore durante a digitação.
+- **Pre-loading de Usuários**: O seletor carrega os primeiros 10 usuários por padrão ao ser focado, oferecendo uma experiência de "Select" imediata antes mesmo da busca ser iniciada.
+- **Layout de Cards de Comunidade**: Refatorada a `IndicacoesList.tsx` para acomodar os novos campos de contato sem poluir visualmente a interface, mantendo a legibilidade em alta densidade.
+
 ## [2.9] — 2026-05-12 — Image Editor e Padronização Visual
 ### ✨ Funcionalidades
 - **Image Editor Integrado**: Implementação de um motor de corte e ajuste de imagens (`react-easy-crop`) no fluxo de upload. O sistema agora força o enquadramento correto (16:9 para eventos) antes de enviar para o servidor.
