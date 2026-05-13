@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Send, Users, User, Image as ImageIcon, Link as LinkIcon, Info } from 'lucide-react';
 import { db } from '@/src/services/firebaseClient';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, limit } from 'firebase/firestore';
+import { Search, Loader2, Check, X, Users, ImageIcon, LinkIcon, Send, Info } from 'lucide-react';
 
 export default function NotificacoesPushPage() {
   const [titulo, setTitulo] = React.useState('');
@@ -16,6 +16,56 @@ export default function NotificacoesPushPage() {
   const [entidadeId, setEntidadeId] = React.useState('');
   const [enviando, setEnviando] = React.useState(false);
   const [resultado, setResultado] = React.useState<{ tipo: 'sucesso' | 'erro', msg: string } | null>(null);
+
+  // Estados para Busca de Usuário
+  const [buscaUser, setBuscaUser] = React.useState('');
+  const [usuarios, setUsuarios] = React.useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = React.useState(false);
+  const [userDropdown, setUserDropdown] = React.useState(false);
+  const [userSelecionado, setUserSelecionado] = React.useState<any | null>(null);
+
+  React.useEffect(() => {
+    // Carrega usuários iniciais
+    buscarUsuarios('');
+  }, []);
+
+  React.useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (buscaUser.length >= 2 && !userSelecionado) {
+        buscarUsuarios(buscaUser);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [buscaUser]);
+
+  const buscarUsuarios = async (termo: string) => {
+    setLoadingUsers(true);
+    try {
+      let q;
+      if (termo) {
+        q = query(
+          collection(db, 'usuarios'),
+          where('nome', '>=', termo),
+          where('nome', '<=', termo + '\uf8ff'),
+          limit(10)
+        );
+      } else {
+        q = query(
+          collection(db, 'usuarios'),
+          limit(10)
+        );
+      }
+      const snap = await getDocs(q);
+      const docs = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+      setUsuarios(docs);
+      if (termo) setUserDropdown(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
   const handleEnviar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,19 +146,76 @@ export default function NotificacoesPushPage() {
                   onClick={() => setDestinatario('especifico')}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${destinatario === 'especifico' ? 'bg-white dark:bg-zinc-900 text-purple-600 shadow-sm' : 'text-zinc-500'}`}
                 >
-                  <User size={14} /> Usuário Específico
+                  <Users size={14} /> Usuário Específico
                 </button>
               </div>
 
               {destinatario === 'especifico' && (
-                <input 
-                  type="text"
-                  placeholder="ID do Usuário (UID)"
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 transition-all"
-                  required
-                />
+                <div className="relative">
+                  <div className="absolute left-4 top-3.5 text-zinc-400">
+                    {loadingUsers ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
+                  </div>
+                  <input 
+                    type="text"
+                    placeholder="Digite o nome do usuário..."
+                    value={userSelecionado ? `${userSelecionado.nome} - ${userSelecionado.uid}` : buscaUser}
+                    onChange={(e) => {
+                      setBuscaUser(e.target.value);
+                      if (userSelecionado) {
+                        setUserSelecionado(null);
+                        setUserId('');
+                      }
+                    }}
+                    onFocus={() => {
+                      setUserDropdown(true);
+                    }}
+                    className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-2xl pl-12 pr-12 py-3 text-sm focus:ring-2 focus:ring-purple-500 transition-all cursor-pointer"
+                    required={destinatario === 'especifico'}
+                  />
+                  
+                  {userSelecionado && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setUserSelecionado(null);
+                        setUserId('');
+                        setBuscaUser('');
+                      }}
+                      className="absolute right-4 top-3.5 text-zinc-400 hover:text-red-500 transition-colors"
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
+
+                  {userDropdown && !userSelecionado && usuarios.length > 0 && (
+                    <div className="absolute z-50 w-full mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800 max-h-60 overflow-y-auto">
+                      {usuarios.map((u) => (
+                        <button
+                          key={u.uid}
+                          type="button"
+                          onClick={() => {
+                            setUserSelecionado(u);
+                            setUserId(u.uid);
+                            setUserDropdown(false);
+                            setBuscaUser('');
+                          }}
+                          className="w-full flex items-center justify-between px-6 py-4 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-left transition-all"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
+                              {u.fotoPerfil ? <img src={u.fotoPerfil} className="w-full h-full object-cover" /> : <Users size={14} className="text-zinc-500" />}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-zinc-900 dark:text-white">{u.nome}</span>
+                              <span className="text-[10px] text-zinc-500 font-mono">{u.uid}</span>
+                            </div>
+                          </div>
+                          <Check size={14} className="text-purple-500 opacity-0 group-hover:opacity-100" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 

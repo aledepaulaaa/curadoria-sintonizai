@@ -90,9 +90,20 @@ export default function IndicacoesList() {
                   </p>
                 ) : null}
 
-                <div className="flex items-center gap-2 text-zinc-500">
-                  <User size={14} />
-                  <span className="text-xs font-medium">Enviado por {ind.usuario?.nome || 'Usuário Anônimo'}</span>
+                <div className="flex flex-col gap-2 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800/50">
+                  <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
+                    <User size={14} className="text-purple-500" />
+                    <span className="text-xs font-bold">Enviado por {ind.usuario?.nome || 'Usuário Anônimo'}</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 ml-6">
+                    <p className="text-[10px] text-zinc-500"><span className="font-bold">Email:</span> {ind.usuario?.email || '—'}</p>
+                    <p className="text-[10px] text-zinc-500"><span className="font-bold">UID:</span> {ind.usuario?.uid || '—'}</p>
+                    {ind.usuario?.telefone && (
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                        <span className="text-zinc-500 font-bold">WhatsApp:</span> {ind.usuario.telefone}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 

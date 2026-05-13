@@ -11,6 +11,7 @@ export interface Indicacao {
     nome: string;
     email: string;
     foto?: string | null;
+    telefone?: string;
     localizacao?: any;
   };
   status: 'pendente' | 'aprovado' | 'rejeitado';
