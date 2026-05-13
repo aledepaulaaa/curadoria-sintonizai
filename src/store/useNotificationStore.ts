@@ -60,18 +60,22 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       orderBy('timestamp', 'desc')
     );
 
-    let unsubFeed: (() => void) | null = null;
+    const unsubFeed = onSnapshot(qFeed, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Feedback[];
+      set({
+        feedbacks: docs,
+        naoLidas: get().indicacoes.length + docs.length,
+        loading: false
+      });
+    });
 
     const unsubInd = onSnapshot(qInd, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Indicacao[];
-      set({ indicacoes: docs });
-      actualizarContagem(set, get);
-    });
-
-    unsubFeed = onSnapshot(qFeed, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Feedback[];
-      set({ feedbacks: docs });
-      actualizarContagem(set, get);
+      set({
+        indicacoes: docs,
+        naoLidas: docs.length + get().feedbacks.length,
+        loading: false
+      });
     });
 
     return () => {
@@ -84,7 +88,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     const { indicacoes, feedbacks } = get();
     try {
       const batch = writeBatch(db);
-      
+
       indicacoes.forEach(ind => {
         batch.update(doc(db, 'indicacoes', ind.id), { status: 'visualizado' });
       });
@@ -94,16 +98,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       });
 
       await batch.commit();
+
+      // Update local state immediately for better UX
+      set({
+        indicacoes: [],
+        feedbacks: [],
+        naoLidas: 0
+      });
     } catch (e) {
       console.error('Erro ao marcar notificações como lidas:', e);
     }
   }
 }));
-
-function actualizarContagem(set: any, get: any) {
-  const { indicacoes, feedbacks } = get();
-  set({ 
-    naoLidas: indicacoes.length + feedbacks.length,
-    loading: false 
-  });
-}

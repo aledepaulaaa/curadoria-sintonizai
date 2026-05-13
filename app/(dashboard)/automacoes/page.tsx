@@ -381,17 +381,17 @@ export default function AutomacoesPage() {
                 </h4>
 
                 <div>
-                  <label className={labelCls}>Ao clicar, levar para:</label>
+                  <label className={labelCls}>Ao clicar na notificação, levar para:</label>
                   <select 
                     value={form.destino.tipo}
                     onChange={e => setForm({ ...form, destino: { ...form.destino, tipo: e.target.value as any }})}
                     className={inputCls}
                   >
-                    <option value="home">Home / Início</option>
-                    <option value="evento_contextual">✨ Evento da Automação (Dinamico)</option>
-                    <option value="evento">Evento Específico (Fixo)</option>
-                    <option value="curadoria">Aba Curadoria</option>
-                    <option value="perfil">Perfil do Usuário</option>
+                    <option value="home">🏠 Home / Início do App</option>
+                    <option value="evento_contextual">📌 Evento que disparou o gatilho (Dinâmico)</option>
+                    <option value="evento">🎟️ Evento Específico (Fixo)</option>
+                    <option value="curadoria">✨ Aba Curadoria</option>
+                    <option value="perfil">👤 Perfil do Usuário</option>
                   </select>
                   {form.destino.tipo === 'evento' && (
                      <div className="mt-4">

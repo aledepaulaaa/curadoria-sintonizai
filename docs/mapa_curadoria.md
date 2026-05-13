@@ -1,4 +1,4 @@
-# Mapa Curadoria Sintonizaí - v3.9
+# Mapa Curadoria Sintonizaí - v4.0
 
 ## 🧠 Inteligência & Ingestão
 - **Image Editor (v1.0)**: Motor de corte (`react-easy-crop`) integrado ao upload. Força proporção 16:9 para eventos e 1:1 para perfis, garantindo integridade visual no App.

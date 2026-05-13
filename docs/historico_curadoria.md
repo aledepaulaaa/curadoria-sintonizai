@@ -1,5 +1,11 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [4.0] — 2026-05-13 — Estabilidade e Intuição em Automações
+### ✨ Funcionalidades
+- **UX de Automação Refinada**: Melhoria nos nomes das opções de destino ("Ao clicar, levar para") para tornar o fluxo mais intuitivo (Deep Links dinâmicos vs fixos).
+- **Precisão do Contador (Sync)**: Refatoração do `useNotificationStore` para garantir que o contador do sino (`naoLidas`) reflita instantaneamente as deleções e marcações de leitura em massa.
+- **Limpeza de Estado Local**: Implementada atualização imediata do estado de notificações após "Marcar todas como lidas", eliminando latência visual.
+
 ## [3.9] — 2026-05-13 — Gestão Avançada de Comunidade e Notificações
 ### ✨ Funcionalidades
 - **Exclusão em Massa (Hub da Comunidade)**: Implementado sistema de seleção múltipla para Reports e Indicações, permitindo limpeza em lote ou individual.
