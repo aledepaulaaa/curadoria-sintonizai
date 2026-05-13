@@ -298,3 +298,20 @@ de edição integrado.
 - Implementada inicialização robusta do Firebase Admin SDK com tratamento avançado de `privateKey` (PEM format).
 - Corrigido erro de dimensionamento do Recharts no Dashboard adicionando containers estáveis e margens de compensação.
 - Unificação das instâncias do Firebase Admin para evitar "Too many apps" error.
+
+## 2026-05-12 — v3.1 — Hub da Comunidade & Push Engine
+
+### Interação Comunitária
+- [x] **Hub da Comunidade**: Nova seção para gestão centralizada de reports de usuários e indicações de eventos.
+- [x] **Gestão de Feedbacks**: Interface para analisar e resolver reports de erro (preço, local, etc), com sistema de notificação de fechamento de ciclo.
+- [x] **Mensagens Diretas**: Implementada lógica de escrita na coleção `curadoria_mensagens` para enviar feedbacks personalizados ao Centro de Curadoria do App.
+
+### Notificações Push
+- [x] **Push Composer**: Criado editor premium para envio de mensagens broadcast ou específicas, com preview mobile em tempo real.
+- [x] **API Push**: Implementada rota `/api/push/send` utilizando `expo-server-sdk` para disparo de notificações via FCM V1.
+- [x] **Deep Linking**: Suporte a links profundos para eventos específicos ou para a aba de curadoria do perfil.
+
+### UI & UX
+- [x] **Notificação Ativa**: O sino de notificações no Header agora possui animação de toque (`animate-ring`) e badge pulsante quando há itens pendentes na comunidade.
+- [x] **Sidebar Evolution**: Adicionados atalhos rápidos para "Notificações Push" e "Comunidade".
+- [x] **Real-time Store**: Atualizado `useNotificationStore` para ouvir simultaneamente as coleções de indicações e feedbacks.

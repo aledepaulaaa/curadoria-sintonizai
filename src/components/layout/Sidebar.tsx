@@ -12,7 +12,9 @@ import {
   FileText,
   Settings2,
   Tag,
-  Music
+  Music,
+  Send,
+  MessageSquare
 } from 'lucide-react';
 import { useUIStore } from '@/src/store/uiStore';
 
@@ -25,6 +27,8 @@ const NAV_ITEMS = [
   { href: '/estilos', label: 'Estilos', icon: Music },
   { href: '/filtros', label: 'Tipos de Evento', icon: Settings2 },
   { href: '/anuncios', label: 'Banners', icon: Megaphone },
+  { href: '/notificacoes', label: 'Notificações Push', icon: Send },
+  { href: '/comunidade', label: 'Comunidade', icon: MessageSquare },
   { href: '/galeria', label: 'Galeria', icon: ImageIcon },
   { href: '/api-docs', label: 'API Docs', icon: FileText },
 ];

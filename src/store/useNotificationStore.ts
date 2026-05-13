@@ -17,45 +17,72 @@ export interface Indicacao {
   criadoEm: any;
 }
 
+export interface Feedback {
+  id: string;
+  eventoId: string;
+  eventoNome: string;
+  usuarioId: string | null;
+  categoria: string;
+  descricao: string;
+  status: 'pendente' | 'analisado' | 'resolvido';
+  lida: boolean;
+  timestamp: any;
+}
+
 interface NotificationState {
   indicacoes: Indicacao[];
+  feedbacks: Feedback[];
   naoLidas: number;
   loading: boolean;
-  setIndicacoes: (indicacoes: Indicacao[]) => void;
   iniciarListener: () => () => void;
 }
 
-export const useNotificationStore = create<NotificationState>((set) => ({
+export const useNotificationStore = create<NotificationState>((set, get) => ({
   indicacoes: [],
+  feedbacks: [],
   naoLidas: 0,
   loading: true,
 
-  setIndicacoes: (indicacoes) => set({ 
-    indicacoes, 
-    naoLidas: indicacoes.filter(i => i.status === 'pendente').length,
-    loading: false 
-  }),
-
   iniciarListener: () => {
-    const q = query(
+    // Listener Indicações
+    const qInd = query(
       collection(db, 'indicacoes'),
       where('status', '==', 'pendente'),
       orderBy('criadoEm', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Indicacao[];
-      
-      set({ 
-        indicacoes: docs,
-        naoLidas: docs.length,
-        loading: false 
-      });
+    // Listener Feedbacks
+    const qFeed = query(
+      collection(db, 'feedbacks'),
+      where('status', '==', 'pendente'),
+      orderBy('timestamp', 'desc')
+    );
+
+    let unsubFeed: (() => void) | null = null;
+
+    const unsubInd = onSnapshot(qInd, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Indicacao[];
+      set({ indicacoes: docs });
+      actualizarContagem(set, get);
     });
 
-    return unsubscribe;
+    unsubFeed = onSnapshot(qFeed, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Feedback[];
+      set({ feedbacks: docs });
+      actualizarContagem(set, get);
+    });
+
+    return () => {
+      unsubInd();
+      if (unsubFeed) unsubFeed();
+    };
   }
 }));
+
+function actualizarContagem(set: any, get: any) {
+  const { indicacoes, feedbacks } = get();
+  set({ 
+    naoLidas: indicacoes.length + feedbacks.length,
+    loading: false 
+  });
+}

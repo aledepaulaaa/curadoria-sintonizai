@@ -1,4 +1,4 @@
-# Mapa Curadoria Sintonizaí - v3.0
+# Mapa Curadoria Sintonizaí - v3.1
 
 ## 🧠 Inteligência & Ingestão
 - **Image Editor (v1.0)**: Motor de corte (`react-easy-crop`) integrado ao upload. Força proporção 16:9 para eventos e 1:1 para perfis, garantindo integridade visual no App.
@@ -10,7 +10,9 @@
 - **Nota da Curadoria**: Propriedade `notaCuradoria` (máx 100 caracteres) para avisos com destaque visual (amarelo/alerta) no App.
 - **Taxonomia Hierárquica**: Gestão 3 níveis (Categoria > Tipo > Estilo) em cascata.
 - **Estabilidade de Mídias**: Gestão centralizada de `storage.rules` com acesso público para a pasta `/eventos/`, eliminando quebras de imagem na galeria e previews.
- a coleção `eventos` do Firestore, compartilhada com o app mobile.
+- **Hub da Comunidade (v1.0)**: Central de gestão de reports e indicações. Permite analisar, resolver e notificar usuários sobre o status de suas contribuições.
+- **Push Notification Composer**: Interface premium para envio de mensagens broadcast ou segmentadas (User ID). Suporte a deep links (Evento/Perfil) e preview mobile em tempo real.
+- **Notificação Visual (Sino)**: Ícone de sino animado (`animate-ring`) com badge dinâmico (`naoLidas`) integrando Reports e Indicações pendentes.
 
 ## Diagrama de Fluxo
 
@@ -38,7 +40,7 @@
 ## Estrutura de Pastas
 
 - `app/(auth)/` — Login, Cadastro (fora do dashboard)
-- `app/(dashboard)/` — Dashboard, Curadoria, Eventos, Usuários, Banners, Galeria, API Docs
+- `app/(dashboard)/` — Dashboard, Curadoria, Eventos, Usuários, Banners, Galeria, API Docs, Comunidade, Notificacoes
 - `src/actions/` — Server Actions por domínio com `ActionResponse` padronizado
 - `src/hooks/` — Custom hooks por módulo (useAuth, useEventos, useInsights, useFiltros)
 - `src/services/` — Firebase Admin (server-only), Firebase Client, Gemini
@@ -49,6 +51,7 @@
 - `src/components/` — Componentes UI por domínio (layout, dashboard, curadoria)
 - `src/components/common/` — Componentes globais (`EmptyState`, `ErrorBoundary`, `Modal`, `ConfirmModal`, `ImageUpload`)
 - `src/components/eventos/` — Componentes específicos de eventos (`EventDetailModal`)
+- `src/components/comunidade/` — Gestão de reports (`FeedbacksList`, `IndicacoesList`)
 - `src/components/curadoria/` — Componentes de fluxo (`IndicationsModal`, `UserSelector`)
 
 ## Segurança
@@ -83,6 +86,8 @@ O ecossistema opera sobre metadados totalmente dinâmicos:
 - [x] **Taxonomia Hierárquica 2.0**: Sincronização absoluta entre App, Portal e IA via metadados dinâmicos e seletores em cascata.
 - [x] **IA Agentic v3**: Implementação de `gemini-3-flash-preview` com controles de regeneração, edição e stop.
 - [x] **Mass Actions**: Capacidade de processar e salvar lotes massivos de até 350 eventos com um único comando IA.
+- [x] **Community Interaction 3.1**: Sistema de fechamento de loop onde a curadoria notifica o usuário via App quando um erro reportado é corrigido.
+- [x] **Push Engine**: Integração via `expo-server-sdk` e API routes para disparo de notificações do sistema.
 
 ## Evoluções Futuras
 1. Notificações push automáticas segmentadas por interesse de Estilo/Categoria.

@@ -1,0 +1,123 @@
+'use client';
+
+import React from 'react';
+import { db } from '@/src/services/firebaseClient';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Indicacao } from '@/src/store/useNotificationStore';
+import { CheckCircle, Clock, ExternalLink, User } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+export default function IndicacoesList() {
+  const [indicacoes, setIndicacoes] = React.useState<Indicacao[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const q = query(collection(db, 'indicacoes'), orderBy('criadoEm', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Indicacao[];
+      setIndicacoes(docs);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleResolver = async (indicacao: Indicacao, status: 'aprovado' | 'rejeitado') => {
+    try {
+      await updateDoc(doc(db, 'indicacoes', indicacao.id), { status });
+
+      if (indicacao.usuario?.uid) {
+        const msg = status === 'aprovado' 
+          ? `Sua indicação do evento em "${indicacao.url}" foi aprovada! Em breve ele estará no app. Obrigado pela contribuição.`
+          : `Recebemos sua indicação de evento, mas infelizmente ela não pôde ser aprovada no momento. Continue contribuindo!`;
+
+        await addDoc(collection(db, 'curadoria_mensagens'), {
+          titulo: status === 'aprovado' ? 'Indicação Aprovada!' : 'Indicação Analisada',
+          mensagem: msg,
+          destinatarios: [indicacao.usuario.uid],
+          data: serverTimestamp(),
+          lida: false,
+          tipo: 'curadoria'
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  if (loading) return <div className="flex justify-center p-20"><Clock className="animate-spin text-purple-600" /></div>;
+
+  return (
+    <div className="grid gap-4">
+      {indicacoes.length === 0 ? (
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl p-12 text-center border border-dashed border-zinc-300 dark:border-zinc-800">
+          <p className="text-zinc-500">Nenhuma indicação pendente.</p>
+        </div>
+      ) : (
+        indicacoes.map((ind) => (
+          <div key={ind.id} className={`bg-white dark:bg-zinc-900 rounded-3xl p-6 border transition-all ${ind.status === 'pendente' ? 'border-purple-200 dark:border-purple-900/30' : 'border-zinc-200 dark:border-zinc-800 opacity-80'}`}>
+            <div className="flex flex-col md:flex-row justify-between gap-4">
+              <div className="space-y-3 flex-1">
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                    ind.status === 'pendente' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
+                    ind.status === 'aprovado' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
+                    'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                  }`}>
+                    {ind.status}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
+                    {ind.criadoEm?.toDate ? format(ind.criadoEm.toDate(), "dd 'de' MMMM, HH:mm", { locale: ptBR }) : 'Recentemente'}
+                  </span>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-1">
+                    Nova Indicação de Evento
+                  </h3>
+                  <a 
+                    href={ind.url} 
+                    target="_blank" 
+                    className="text-purple-600 hover:underline flex items-center gap-2 text-sm font-medium"
+                  >
+                    {ind.url} <ExternalLink size={14} />
+                  </a>
+                </div>
+
+                {ind.descricao ? (
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl">
+                    {ind.descricao}
+                  </p>
+                ) : null}
+
+                <div className="flex items-center gap-2 text-zinc-500">
+                  <User size={14} />
+                  <span className="text-xs font-medium">Enviado por {ind.usuario?.nome || 'Usuário Anônimo'}</span>
+                </div>
+              </div>
+
+              <div className="flex md:flex-col gap-2 justify-end">
+                {ind.status === 'pendente' && (
+                  <>
+                    <button 
+                      onClick={() => handleResolver(ind, 'aprovado')}
+                      className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-purple-600 text-white text-xs font-bold hover:bg-purple-700 shadow-lg shadow-purple-500/20 transition-all"
+                    >
+                      <CheckCircle size={14} /> Aprovar
+                    </button>
+                    <button 
+                      onClick={() => handleResolver(ind, 'rejeitado')}
+                      className="flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-red-500 text-xs font-bold hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                    >
+                      Rejeitar
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}

@@ -60,11 +60,11 @@ export default function Header({ onToggleSidebar, onOpenNotifications }: HeaderP
         <button
           onClick={onOpenNotifications}
           className="relative p-2 rounded-lg text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          title="Indicações de Usuários"
+          title="Indicações e Feedbacks"
         >
-          <Bell size={20} />
+          <Bell size={20} className={naoLidas > 0 ? 'animate-ring text-purple-600 dark:text-purple-400' : ''} />
           {naoLidas > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-900">
+            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-900 animate-pulse">
               {naoLidas}
             </span>
           )}
