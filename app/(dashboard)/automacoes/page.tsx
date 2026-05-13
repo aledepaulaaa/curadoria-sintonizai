@@ -33,6 +33,9 @@ const GATILHOS: Record<AutomacaoGatilho, { label: string; icon: string; desc: st
   ingresso_acabando: { label: 'Ingresso Acabando', icon: '🎟️', desc: 'Dispara quando restam poucos ingressos' },
   novo_evento: { label: 'Novo Evento', icon: '✨', desc: 'Dispara quando um evento de estilo preferido é postado' },
   usuario_inativo: { label: 'Usuário Inativo', icon: '💤', desc: 'Dispara após X dias sem abrir o app' },
+  recomendacao_geografica: { label: 'Recomendação Geográfica', icon: '📍', desc: 'Push inteligente baseado na localização e favoritos do usuário' },
+  banner_exibicao: { label: 'Início de Banner', icon: '🖼️', desc: 'Dispara quando um banner de destaque começa a ser exibido' },
+  banner_evento: { label: 'Início do Evento (Banner)', icon: '🔴', desc: 'Dispara quando o evento de um banner em destaque começa' },
   periodico: { label: 'Periódico / Agendado', icon: '📅', desc: 'Dispara em horários/dias fixos (estilo iFood)' },
 };
 
@@ -157,7 +160,7 @@ export default function AutomacoesPage() {
                 </div>
 
                 <div>
-                  <label className={labelCls}>Quando disparar?</label>
+                  <label className={labelCls}>Tipo de Disparo (Gatilho)</label>
                   <select 
                     value={form.gatilho}
                     onChange={e => setForm({ ...form, gatilho: e.target.value as AutomacaoGatilho })}
@@ -176,28 +179,74 @@ export default function AutomacoesPage() {
                    <Clock size={14} /> 2. Timing e Frequência
                 </h4>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Frequência</label>
-                    <select 
-                      value={form.configuracao.frequencia}
-                      onChange={e => setForm({ ...form, configuracao: { ...form.configuracao, frequencia: e.target.value as any }})}
-                      className={inputCls}
-                    >
-                      <option value="uma_vez">Uma vez</option>
-                      <option value="diaria">Diária</option>
-                      <option value="semanal">Semanal</option>
-                    </select>
-                  </div>
-                  {form.gatilho === 'periodico' && (
+                 <div className="space-y-4">
+                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className={labelCls}>Horário</label>
+                      <label className={labelCls}>Frequência</label>
+                      <select 
+                        value={form.configuracao.frequencia}
+                        onChange={e => setForm({ ...form, configuracao: { ...form.configuracao, frequencia: e.target.value as any }})}
+                        className={inputCls}
+                      >
+                        <option value="uma_vez">Uma vez</option>
+                        <option value="diaria">Diária</option>
+                        <option value="semanal">Semanal</option>
+                      </select>
+                    </div>
+                    {(form.gatilho === 'periodico' || form.gatilho === 'recomendacao_geografica' || form.gatilho === 'banner_exibicao' || form.gatilho === 'banner_evento') && (
+                      <div>
+                        <label className={labelCls}>Horário</label>
+                        <input 
+                          type="time"
+                          value={form.configuracao.horarioExecucao}
+                          onChange={e => setForm({ ...form, configuracao: { ...form.configuracao, horarioExecucao: e.target.value }})}
+                          className={inputCls}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {form.configuracao.frequencia === 'uma_vez' && (
+                    <div>
+                      <label className={labelCls}>Data da Execução</label>
                       <input 
-                        type="time"
-                        value={form.configuracao.horarioExecucao}
-                        onChange={e => setForm({ ...form, configuracao: { ...form.configuracao, horarioExecucao: e.target.value }})}
+                        type="date"
+                        value={form.configuracao.dataExecucao}
+                        onChange={e => setForm({ ...form, configuracao: { ...form.configuracao, dataExecucao: e.target.value }})}
                         className={inputCls}
                       />
+                    </div>
+                  )}
+
+                  {(form.gatilho === 'evento_salvo' || form.gatilho === 'evento_proximo') && (
+                    <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 space-y-4">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Timing Relativo ao Evento</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <input 
+                          type="number"
+                          placeholder="Qtd"
+                          value={form.timing.valor ?? ''}
+                          onChange={e => setForm({ ...form, timing: { ...form.timing, tipo: 'relativo', valor: Number(e.target.value) }})}
+                          className={inputCls}
+                        />
+                        <select 
+                          value={form.timing.unidade ?? 'minutos'}
+                          onChange={e => setForm({ ...form, timing: { ...form.timing, tipo: 'relativo', unidade: e.target.value as any }})}
+                          className={inputCls}
+                        >
+                          <option value="minutos">Minutos</option>
+                          <option value="horas">Horas</option>
+                          <option value="dias">Dias</option>
+                        </select>
+                        <select 
+                          value={form.timing.antesOuDepois ?? 'antes'}
+                          onChange={e => setForm({ ...form, timing: { ...form.timing, tipo: 'relativo', antesOuDepois: e.target.value as any }})}
+                          className={inputCls}
+                        >
+                          <option value="antes">Antes</option>
+                          <option value="depois">Depois</option>
+                        </select>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -216,33 +265,48 @@ export default function AutomacoesPage() {
                     <label className={labelCls}>Dias de inatividade</label>
                     <input 
                       type="number"
-                      value={form.condicoes.diasInatividade}
+                      value={form.condicoes.diasInatividade ?? ''}
                       onChange={e => setForm({ ...form, condicoes: { ...form.condicoes, diasInatividade: Number(e.target.value) }})}
                       className={inputCls}
                     />
                   </div>
                 )}
 
-                {form.gatilho === 'evento_proximo' && (
-                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelCls}>Raio Máx (KM)</label>
-                      <input 
-                        type="number"
-                        value={form.condicoes.distanciaMaxKm}
-                        onChange={e => setForm({ ...form, condicoes: { ...form.condicoes, distanciaMaxKm: Number(e.target.value) }})}
-                        className={inputCls}
-                      />
+                {(form.gatilho === 'evento_proximo' || form.gatilho === 'recomendacao_geografica') && (
+                   <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelCls}>Raio Máx (KM)</label>
+                        <input 
+                          type="number"
+                          value={form.condicoes.distanciaMaxKm ?? ''}
+                          onChange={e => setForm({ ...form, condicoes: { ...form.condicoes, distanciaMaxKm: Number(e.target.value) }})}
+                          className={inputCls}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Apenas Gratuitos?</label>
+                        <select 
+                          value={form.condicoes.gratuito ? 'sim' : 'nao'}
+                          onChange={e => setForm({ ...form, condicoes: { ...form.condicoes, gratuito: e.target.value === 'sim' }})}
+                          className={inputCls}
+                        >
+                          <option value="nao">Não (Todos)</option>
+                          <option value="sim">Sim</option>
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className={labelCls}>Janela (Horas)</label>
-                      <input 
-                        type="number"
-                        value={form.condicoes.janelaHorarioHoras}
-                        onChange={e => setForm({ ...form, condicoes: { ...form.condicoes, janelaHorarioHoras: Number(e.target.value) }})}
-                        className={inputCls}
-                      />
-                    </div>
+                    {form.gatilho === 'evento_proximo' && (
+                      <div>
+                        <label className={labelCls}>Janela (Horas)</label>
+                        <input 
+                          type="number"
+                          value={form.condicoes.janelaHorarioHoras}
+                          onChange={e => setForm({ ...form, condicoes: { ...form.condicoes, janelaHorarioHoras: Number(e.target.value) }})}
+                          className={inputCls}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -280,24 +344,31 @@ export default function AutomacoesPage() {
                 </h4>
                 
                 <div>
-                  <label className={labelCls}>Título da Notificação</label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className={labelCls}>Conteúdo da Notificação</label>
+                    <div className="flex gap-2">
+                       <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-500 font-mono">[nome_usuario]</span>
+                       <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-500 font-mono">[nome_evento]</span>
+                    </div>
+                  </div>
                   <input 
                     required
                     value={form.mensagem.titulo}
                     onChange={e => setForm({ ...form, mensagem: { ...form.mensagem, titulo: e.target.value }})}
+                    placeholder="Título da Notificação"
                     className={inputCls}
                   />
-                </div>
-
-                <div>
-                  <label className={labelCls}>Corpo da Notificação</label>
                   <textarea 
                     required
                     rows={3}
                     value={form.mensagem.corpo}
                     onChange={e => setForm({ ...form, mensagem: { ...form.mensagem, corpo: e.target.value }})}
-                    className={`${inputCls} resize-none`}
+                    placeholder="Corpo da mensagem que aparecerá na tela de bloqueio..."
+                    className={`${inputCls} mt-2 h-24 resize-none`}
                   />
+                  <p className="text-[10px] text-zinc-400 mt-2 italic">
+                    Use as tags acima para personalizar a mensagem com dados reais do usuário/evento.
+                  </p>
                 </div>
               </section>
             </div>
@@ -317,7 +388,8 @@ export default function AutomacoesPage() {
                     className={inputCls}
                   >
                     <option value="home">Home / Início</option>
-                    <option value="evento">Evento Específico</option>
+                    <option value="evento_contextual">✨ Evento da Automação (Dinamico)</option>
+                    <option value="evento">Evento Específico (Fixo)</option>
                     <option value="curadoria">Aba Curadoria</option>
                     <option value="perfil">Perfil do Usuário</option>
                   </select>

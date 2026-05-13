@@ -1,5 +1,19 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [3.9] — 2026-05-13 — Gestão Avançada de Comunidade e Notificações
+### ✨ Funcionalidades
+- **Exclusão em Massa (Hub da Comunidade)**: Implementado sistema de seleção múltipla para Reports e Indicações, permitindo limpeza em lote ou individual.
+- **Notificações Unificadas**: O modal do sino agora agrupa Reports de Erros e Indicações de Eventos em uma única visualização organizada.
+- **Marcador de Leitura Global**: Adicionada função "Marcar todas como lidas" no modal de notificações, resolvendo inconsistências no contador do sino.
+- **Persistência de Status**: Transição de estados (analisado/visualizado) integrada ao Firestore para garantir sincronia entre usuários da curadoria.
+
+## [3.8] — 2026-05-13 — Automação de Banners e Agendamento Único
+### ✨ Funcionalidades
+- **Sincronização de Pushes para Banners**: Agora, ao marcar "Notificar" na criação de um banner, o sistema cria automaticamente uma automação de push agendada.
+- **Agendamento Único (One-time)**: Suporte a disparos em data e hora específica (`dataExecucao`), ideal para lançamentos de banners e eventos especiais.
+- **Gestão de Ciclo de Vida**: Alterações ou exclusões de banners agora limpam automaticamente as automações de push vinculadas.
+- **Correção de Inputs Controlados**: Estabilização dos campos de Timing e Frequência para evitar warnings de estado `undefined`.
+
 ## [3.7] — 2026-05-13 — Seletores Inteligentes e UX de Automação
 ### ✨ Funcionalidades
 - **Seletores de Dados (Busca Ativa)**: Implementado componente `DataSelector` que permite buscar usuários e eventos em tempo real diretamente no formulário de automação.

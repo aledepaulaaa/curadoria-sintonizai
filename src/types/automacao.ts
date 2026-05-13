@@ -5,6 +5,9 @@ export type AutomacaoGatilho =
   | 'ingresso_acabando' 
   | 'novo_evento' 
   | 'usuario_inativo' 
+  | 'recomendacao_geografica' 
+  | 'banner_exibicao'
+  | 'banner_evento'
   | 'periodico';
 
 export type AutomacaoUnidadeTempo = 'minutos' | 'horas' | 'dias';
@@ -41,7 +44,7 @@ export interface Automacao {
 
   // Destino do Clique
   destino: {
-    tipo: 'evento' | 'perfil' | 'curadoria' | 'home' | 'externo';
+    tipo: 'evento' | 'evento_contextual' | 'perfil' | 'curadoria' | 'home' | 'externo';
     id?: string; // ID do evento ou perfil
     url?: string; // Para links externos
   };
@@ -52,6 +55,7 @@ export interface Automacao {
     diasSemana?: number[]; // [0, 1, 2...] para semanal
     ativa: boolean;
     horarioExecucao?: string; // HH:mm para periódicos
+    dataExecucao?: string; // YYYY-MM-DD para uma_vez
   };
 
   destinatarios: {

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { db } from '../services/firebaseClient';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, writeBatch, doc } from 'firebase/firestore';
 
 export interface Indicacao {
   id: string;
@@ -36,6 +36,7 @@ interface NotificationState {
   naoLidas: number;
   loading: boolean;
   iniciarListener: () => () => void;
+  marcarTodasComoLidas: () => Promise<void>;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -77,6 +78,25 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       unsubInd();
       if (unsubFeed) unsubFeed();
     };
+  },
+
+  marcarTodasComoLidas: async () => {
+    const { indicacoes, feedbacks } = get();
+    try {
+      const batch = writeBatch(db);
+      
+      indicacoes.forEach(ind => {
+        batch.update(doc(db, 'indicacoes', ind.id), { status: 'visualizado' });
+      });
+
+      feedbacks.forEach(fb => {
+        batch.update(doc(db, 'feedbacks', fb.id), { status: 'analisado' });
+      });
+
+      await batch.commit();
+    } catch (e) {
+      console.error('Erro ao marcar notificações como lidas:', e);
+    }
   }
 }));
 

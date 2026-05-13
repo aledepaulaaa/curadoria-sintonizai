@@ -1,26 +1,14 @@
 'use server';
 
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  orderBy,
-} from 'firebase/firestore';
+import { adminDb } from '@/src/services/firebaseAdmin';
 import { Automacao } from '@/src/types/automacao';
 import { revalidatePath } from 'next/cache';
-import { db } from '@/src/services/firebaseClient';
-
 
 const COLLECTION = 'automacoes';
 
 export async function listarAutomacoes() {
   try {
-    const q = query(collection(db, COLLECTION), orderBy('criadoEm', 'desc'));
-    const snapshot = await getDocs(q);
+    const snapshot = await adminDb.collection(COLLECTION).orderBy('criadoEm', 'desc').get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Automacao));
   } catch (error) {
     console.error('Erro ao listar automações:', error);
@@ -31,7 +19,7 @@ export async function listarAutomacoes() {
 export async function salvarAutomacao(data: Omit<Automacao, 'id'>, id?: string) {
   try {
     const agora = new Date().toISOString();
-    const docRef = id ? doc(db, COLLECTION, id) : doc(collection(db, COLLECTION));
+    const docRef = id ? adminDb.collection(COLLECTION).doc(id) : adminDb.collection(COLLECTION).doc();
     
     const payload = {
       ...data,
@@ -40,7 +28,7 @@ export async function salvarAutomacao(data: Omit<Automacao, 'id'>, id?: string) 
       criadoEm: data.criadoEm || agora
     };
 
-    await setDoc(docRef, payload, { merge: true });
+    await docRef.set(payload, { merge: true });
     revalidatePath('/automacoes');
     return { success: true, id: docRef.id };
   } catch (error) {
@@ -51,8 +39,8 @@ export async function salvarAutomacao(data: Omit<Automacao, 'id'>, id?: string) 
 
 export async function alternarStatusAutomacao(id: string, ativa: boolean) {
   try {
-    const docRef = doc(db, COLLECTION, id);
-    await updateDoc(docRef, { 
+    const docRef = adminDb.collection(COLLECTION).doc(id);
+    await docRef.update({ 
       'configuracao.ativa': ativa,
       atualizadoEm: new Date().toISOString()
     });
@@ -66,7 +54,7 @@ export async function alternarStatusAutomacao(id: string, ativa: boolean) {
 
 export async function excluirAutomacao(id: string) {
   try {
-    await deleteDoc(doc(db, COLLECTION, id));
+    await adminDb.collection(COLLECTION).doc(id).delete();
     revalidatePath('/automacoes');
     return { success: true };
   } catch (error) {
