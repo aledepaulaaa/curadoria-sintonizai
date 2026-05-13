@@ -13,7 +13,9 @@ import {
   Calendar,
   ChevronRight,
   Info,
-  Smartphone
+  Smartphone,
+  Users,
+  Ticket
 } from 'lucide-react';
 import { Automacao, AutomacaoGatilho } from '@/src/types/automacao';
 import { 
@@ -22,6 +24,7 @@ import {
   excluirAutomacao, 
   alternarStatusAutomacao 
 } from '@/src/actions/automacoes/automacoesActions';
+import DataSelector from '@/src/components/common/DataSelector';
 
 const GATILHOS: Record<AutomacaoGatilho, { label: string; icon: string; desc: string }> = {
   evento_salvo: { label: 'Evento Salvo', icon: '🔖', desc: 'Dispara quando o usuário favorita um evento' },
@@ -254,12 +257,19 @@ export default function AutomacoesPage() {
                      <option value="especifico">Usuário Específico (Teste)</option>
                    </select>
                    {form.destinatarios.tipo === 'especifico' && (
-                      <input 
-                        placeholder="UID do usuário"
-                        value={form.destinatarios.userId}
-                        onChange={e => setForm({ ...form, destinatarios: { ...form.destinatarios, userId: e.target.value }})}
-                        className={`${inputCls} mt-2`}
-                      />
+                      <div className="mt-4">
+                        <DataSelector 
+                          collectionName="usuarios"
+                          label="Escolher Usuário"
+                          placeholder="Buscar usuário..."
+                          selectedId={form.destinatarios.userId}
+                          onSelect={(user) => setForm({ 
+                            ...form, 
+                            destinatarios: { ...form.destinatarios, userId: user?.id } 
+                          })}
+                          icon={<Users size={12} />}
+                        />
+                      </div>
                    )}
                 </div>
               </section>
@@ -312,12 +322,19 @@ export default function AutomacoesPage() {
                     <option value="perfil">Perfil do Usuário</option>
                   </select>
                   {form.destino.tipo === 'evento' && (
-                     <input 
-                        placeholder="ID do Evento"
-                        value={form.destino.id}
-                        onChange={e => setForm({ ...form, destino: { ...form.destino, id: e.target.value }})}
-                        className={`${inputCls} mt-2`}
-                     />
+                     <div className="mt-4">
+                        <DataSelector 
+                          collectionName="eventos"
+                          label="Selecionar Evento"
+                          placeholder="Buscar evento pelo nome..."
+                          selectedId={form.destino.id}
+                          onSelect={(evento) => setForm({ 
+                            ...form, 
+                            destino: { ...form.destino, id: evento?.id } 
+                          })}
+                          icon={<Ticket size={12} />}
+                        />
+                     </div>
                   )}
                 </div>
 
