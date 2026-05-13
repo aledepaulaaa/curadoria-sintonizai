@@ -1,5 +1,13 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [3.5] — 2026-05-13 — Engine de Banners e Preview Real-time
+### ✨ Funcionalidades
+- **Controle Dinâmico**: Adicionados campos para customização de textos de status (Badges) e botões de ação para banners.
+- **Preview Mobile Integrado**: Novo componente de simulação que exibe exatamente como o banner ficará no celular, com troca de estados (Em Breve/Disponível/Ao Vivo) em tempo real.
+- **Automação de Push**: Implementados seletores para habilitar notificações automáticas ao iniciar exibição ou início de evento.
+- **Agendamento Preciso**: Migração para inputs de `datetime-local`, permitindo definir horários exatos para banners sumirem ou mudarem de fase.
+- **Gestão de Ordem**: Campo numérico para definir a sequência de exibição no App.
+
 ## [3.4] — 2026-05-13 — Padronização de Mídias e Design System
 ### ✨ Funcionalidades
 - **Editor de Banners 16:9**: O fluxo de criação de banners agora força obrigatoriamente a proporção 16:9. O `ImageEditor` abre automaticamente com o enquadramento correto, garantindo que todo novo destaque siga o padrão visual do app.

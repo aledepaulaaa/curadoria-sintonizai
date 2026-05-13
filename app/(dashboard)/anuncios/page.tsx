@@ -10,8 +10,10 @@ import ImageUpload from '@/src/components/common/ImageUpload';
 import GallerySelector from '@/src/components/curadoria/GallerySelector';
 import { 
   Plus, Pencil, Trash2, Calendar, Layout, Type, MapPin, 
-  ExternalLink, Bell, List, Info, Image as ImageIcon 
+  ExternalLink, Bell, List, Info, Image as ImageIcon,
+  ArrowUp, ArrowDown, Smartphone, Clock
 } from 'lucide-react';
+import BannerPreview from '@/src/components/curadoria/BannerPreview';
 
 const INITIAL_FORM: Omit<BannerDestaque, 'id'> = {
   titulo: '',
@@ -21,10 +23,17 @@ const INITIAL_FORM: Omit<BannerDestaque, 'id'> = {
   dataInicioExibicao: '',
   dataInicioEvento: '',
   dataFimEvento: '',
+  textoStatusEmBreve: 'EM BREVE',
+  textoStatusDisponivel: 'DISPONÍVEL',
+  textoStatusAoVivo: 'AO VIVO',
   textoEmBreve: 'O evento mais esperado de 2026 vem aí! 🚀',
   textoDisponivel: 'A programação completa já está disponível! 🔥',
   textoAoVivo: 'O EVENTO JÁ COMEÇOU! NÃO FIQUE DE FORA! 🔴',
+  textoBotao: 'Ver Programação',
+  notificarInicioExibicao: false,
+  notificarInicioEvento: true,
   ativo: true,
+  ordem: 0,
   tag: 'destaque',
   cidade: 'São Paulo',
   categorias: [],
@@ -38,6 +47,7 @@ export default function AnunciosPage() {
   const [showGallery, setShowGallery] = React.useState(false);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [form, setForm] = React.useState<Omit<BannerDestaque, 'id'>>(INITIAL_FORM);
+  const [previewEstado, setPreviewEstado] = React.useState<'em_breve' | 'disponivel' | 'ao_vivo'>('disponivel');
 
   const carregar = React.useCallback(async () => {
     setCarregando(true);
@@ -132,6 +142,26 @@ export default function AnunciosPage() {
                   folder="banners"
                   aspectRatio={16 / 9}
                 />
+
+                <div className="pt-4 space-y-4">
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+                    <h5 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4 flex items-center gap-2">
+                      <Smartphone size={12} className="text-purple-500" /> Simular Estado no Preview
+                    </h5>
+                    <div className="flex gap-2">
+                      {(['em_breve', 'disponivel', 'ao_vivo'] as const).map(est => (
+                        <button
+                          key={est}
+                          type="button"
+                          onClick={() => setPreviewEstado(est)}
+                          className={`flex-1 py-2 rounded-xl text-[9px] font-bold uppercase transition-all ${previewEstado === est ? 'bg-purple-600 text-white shadow-lg' : 'bg-white dark:bg-zinc-800 text-zinc-500'}`}
+                        >
+                          {est.replace('_', ' ')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -171,76 +201,180 @@ export default function AnunciosPage() {
                     className={inputCls} 
                   />
                 </div>
+                <div>
+                  <label className={labelCls}><Layout size={12} /> Ordem de Exibição (0 = primeiro)</label>
+                  <input 
+                    type="number"
+                    value={form.ordem} 
+                    onChange={(e) => setForm({ ...form, ordem: Number(e.target.value) })} 
+                    className={inputCls} 
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}><Type size={12} /> Texto do Botão de Ação</label>
+                  <input 
+                    placeholder="Ex: Ver Programação"
+                    value={form.textoBotao} 
+                    onChange={(e) => setForm({ ...form, textoBotao: e.target.value })} 
+                    className={inputCls} 
+                  />
+                </div>
               </div>
             </div>
 
             <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
 
-            {/* Seção Datas */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className={labelCls}><Calendar size={12} /> Início da Exibição</label>
-                <input 
-                  type="date" 
-                  value={form.dataInicioExibicao} 
-                  onChange={(e) => setForm({ ...form, dataInicioExibicao: e.target.value })} 
-                  className={inputCls} 
-                  required
-                />
-              </div>
-              <div>
-                <label className={labelCls}><Calendar size={12} /> Início do Evento</label>
-                <input 
-                  type="date" 
-                  value={form.dataInicioEvento} 
-                  onChange={(e) => setForm({ ...form, dataInicioEvento: e.target.value })} 
-                  className={inputCls} 
-                  required
-                />
-              </div>
-              <div>
-                <label className={labelCls}><Calendar size={12} /> Fim do Evento (Expiração)</label>
-                <input 
-                  type="date" 
-                  value={form.dataFimEvento} 
-                  onChange={(e) => setForm({ ...form, dataFimEvento: e.target.value })} 
-                  className={inputCls} 
-                  required
-                />
-              </div>
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div className="space-y-8">
+                {/* Seção Datas e Horários Precisos */}
+                <div className="space-y-6">
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                    <Clock size={14} className="text-purple-500" /> Agendamento e Horários Precisos
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelCls}><Calendar size={12} /> Início da Exibição</label>
+                      <input 
+                        type="datetime-local" 
+                        value={form.dataInicioExibicao} 
+                        onChange={(e) => setForm({ ...form, dataInicioExibicao: e.target.value })} 
+                        className={inputCls} 
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}><Calendar size={12} /> Início do Evento</label>
+                      <input 
+                        type="datetime-local" 
+                        value={form.dataInicioEvento} 
+                        onChange={(e) => setForm({ ...form, dataInicioEvento: e.target.value })} 
+                        className={inputCls} 
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}><Calendar size={12} /> Fim do Evento (Expiração)</label>
+                      <input 
+                        type="datetime-local" 
+                        value={form.dataFimEvento} 
+                        onChange={(e) => setForm({ ...form, dataFimEvento: e.target.value })} 
+                        className={inputCls} 
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
 
-            {/* Seção Textos IA */}
-            <div className="grid grid-cols-1 gap-6">
-               <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                 <Bell size={14} className="text-purple-500" /> Textos Dinâmicos baseados no estado do App
-               </h4>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className={labelCls}>Texto "Em Breve"</label>
-                    <textarea 
-                      value={form.textoEmBreve} 
-                      onChange={e => setForm({ ...form, textoEmBreve: e.target.value })}
-                      className={`${inputCls} h-20 resize-none text-xs`}
-                    />
+                {/* Seção Notificações */}
+                <div className="p-6 bg-purple-50 dark:bg-purple-900/10 rounded-3xl border border-purple-100 dark:border-purple-900/30 space-y-4">
+                  <h4 className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest flex items-center gap-2">
+                    <Bell size={14} /> Automação de Push Notifications
+                  </h4>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only" 
+                          checked={form.notificarInicioExibicao}
+                          onChange={e => setForm({ ...form, notificarInicioExibicao: e.target.checked })}
+                        />
+                        <div className={`w-10 h-6 rounded-full transition-colors ${form.notificarInicioExibicao ? 'bg-purple-600' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
+                        <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform ${form.notificarInicioExibicao ? 'translate-x-4' : ''}`} />
+                      </div>
+                      <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-purple-500 transition-colors">Notificar ao iniciar exibição no App</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className="relative">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only" 
+                          checked={form.notificarInicioEvento}
+                          onChange={e => setForm({ ...form, notificarInicioEvento: e.target.checked })}
+                        />
+                        <div className={`w-10 h-6 rounded-full transition-colors ${form.notificarInicioEvento ? 'bg-purple-600' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
+                        <div className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform ${form.notificarInicioEvento ? 'translate-x-4' : ''}`} />
+                      </div>
+                      <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-purple-500 transition-colors">Notificar ao iniciar o evento (Início do Evento)</span>
+                    </label>
                   </div>
-                  <div>
-                    <label className={labelCls}>Texto "Disponível"</label>
-                    <textarea 
-                      value={form.textoDisponivel} 
-                      onChange={e => setForm({ ...form, textoDisponivel: e.target.value })}
-                      className={`${inputCls} h-20 resize-none text-xs`}
-                    />
+                </div>
+
+                {/* Seção Status Dinâmicos */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                    <Type size={14} className="text-purple-500" /> Textos dos Badges de Status
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className={labelCls}>Status "Em Breve"</label>
+                      <input 
+                        value={form.textoStatusEmBreve} 
+                        onChange={e => setForm({ ...form, textoStatusEmBreve: e.target.value })}
+                        className={inputCls}
+                        placeholder="Default: EM BREVE"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Status "Disponível"</label>
+                      <input 
+                        value={form.textoStatusDisponivel} 
+                        onChange={e => setForm({ ...form, textoStatusDisponivel: e.target.value })}
+                        className={inputCls}
+                        placeholder="Default: DISPONÍVEL"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Status "Ao Vivo"</label>
+                      <input 
+                        value={form.textoStatusAoVivo} 
+                        onChange={e => setForm({ ...form, textoStatusAoVivo: e.target.value })}
+                        className={inputCls}
+                        placeholder="Default: AO VIVO"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelCls}>Texto "Ao Vivo"</label>
-                    <textarea 
-                      value={form.textoAoVivo} 
-                      onChange={e => setForm({ ...form, textoAoVivo: e.target.value })}
-                      className={`${inputCls} h-20 resize-none text-xs`}
-                    />
+                </div>
+
+                {/* Seção Mensagens de Impacto */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                    <Type size={14} className="text-purple-500" /> Mensagens Dinâmicas por estado
+                  </h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className={labelCls}>Mensagem (Em Breve)</label>
+                      <textarea 
+                        value={form.textoEmBreve} 
+                        onChange={e => setForm({ ...form, textoEmBreve: e.target.value })}
+                        className={`${inputCls} h-20 resize-none text-xs`}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Mensagem (Disponível)</label>
+                      <textarea 
+                        value={form.textoDisponivel} 
+                        onChange={e => setForm({ ...form, textoDisponivel: e.target.value })}
+                        className={`${inputCls} h-20 resize-none text-xs`}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Mensagem (Ao Vivo)</label>
+                      <textarea 
+                        value={form.textoAoVivo} 
+                        onChange={e => setForm({ ...form, textoAoVivo: e.target.value })}
+                        className={`${inputCls} h-20 resize-none text-xs`}
+                      />
+                    </div>
                   </div>
-               </div>
+                </div>
+              </div>
+
+              {/* Preview Mobile */}
+              <div className="hidden lg:block">
+                <BannerPreview form={form} estadoSimulado={previewEstado} />
+              </div>
             </div>
 
             <div className="flex justify-end gap-4 pt-4">
@@ -287,6 +421,15 @@ export default function AnunciosPage() {
                    <ImageIcon size={40} className="text-zinc-300" />
                 </div>
               )}
+              
+              <div className="absolute top-6 left-6 flex flex-col gap-2 z-10">
+                 <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center text-xs font-black shadow-lg">
+                       #{b.ordem}
+                    </div>
+                    {b.notificarInicioEvento && <div className="p-2 bg-amber-500 text-white rounded-xl shadow-lg"><Bell size={12} /></div>}
+                 </div>
+              </div>
               
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-8">
                 <div className="flex items-center gap-2 mb-2">

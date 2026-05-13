@@ -1,4 +1,4 @@
-# Mapa Curadoria Sintonizaí - v3.4
+# Mapa Curadoria Sintonizaí - v3.5
 
 ## 🧠 Inteligência & Ingestão
 - **Image Editor (v1.0)**: Motor de corte (`react-easy-crop`) integrado ao upload. Força proporção 16:9 para eventos e 1:1 para perfis, garantindo integridade visual no App.
@@ -88,6 +88,7 @@ O ecossistema opera sobre metadados totalmente dinâmicos:
 - [x] **Mass Actions**: Capacidade de processar e salvar lotes massivos de até 350 eventos com um único comando IA.
 - [x] **Community Interaction 3.1**: Sistema de fechamento de loop onde a curadoria notifica o usuário via App quando um erro reportado é corrigido.
 - [x] **Push Engine**: Integração via `expo-server-sdk` e API routes para disparo de notificações do sistema.
+- [x] **Banner Engine v3.5**: Sistema de banners 100% dinâmicos com preview mobile (Android/iOS), agendamento preciso (datetime-local) e controle de ordem.
 
 ## Evoluções Futuras
 1. Notificações push automáticas segmentadas por interesse de Estilo/Categoria.

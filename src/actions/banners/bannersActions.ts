@@ -6,7 +6,7 @@ import type { BannerDestaque } from '@/src/types/banner';
 const COLLECTION = 'banners_destaque';
 
 export async function listarBanners(): Promise<BannerDestaque[]> {
-  const snap = await adminDb.collection(COLLECTION).get();
+  const snap = await adminDb.collection(COLLECTION).orderBy('ordem', 'asc').get();
   return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BannerDestaque));
 }
 
