@@ -188,9 +188,10 @@ export default function AutomacoesPage() {
                         onChange={e => setForm({ ...form, configuracao: { ...form.configuracao, frequencia: e.target.value as any }})}
                         className={inputCls}
                       >
-                        <option value="uma_vez">Uma vez</option>
-                        <option value="diaria">Diária</option>
-                        <option value="semanal">Semanal</option>
+                        <option value="uma_vez">Uma vez (Data Única)</option>
+                        <option value="diaria">Diária (Todo dia)</option>
+                        <option value="semanal">Semanal (Dias da Semana)</option>
+                        <option value="personalizada">📅 Personalizada (Calendário)</option>
                       </select>
                     </div>
                     {(form.gatilho === 'periodico' || form.gatilho === 'recomendacao_geografica' || form.gatilho === 'banner_exibicao' || form.gatilho === 'banner_evento') && (
@@ -215,6 +216,87 @@ export default function AutomacoesPage() {
                         onChange={e => setForm({ ...form, configuracao: { ...form.configuracao, dataExecucao: e.target.value }})}
                         className={inputCls}
                       />
+                    </div>
+                  )}
+
+                  {form.configuracao.frequencia === 'semanal' && (
+                    <div className="space-y-3">
+                      <label className={labelCls}>Repetir nos dias:</label>
+                      <div className="flex gap-2">
+                        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((dia, idx) => {
+                          const selecionado = (form.configuracao.diasSemana || []).includes(idx);
+                          return (
+                            <button
+                              key={`day-${idx}`}
+                              type="button"
+                              onClick={() => {
+                                const atuais = form.configuracao.diasSemana || [];
+                                const novos = atuais.includes(idx) 
+                                  ? atuais.filter(d => d !== idx)
+                                  : [...atuais, idx];
+                                setForm({ ...form, configuracao: { ...form.configuracao, diasSemana: novos }});
+                              }}
+                              className={`w-9 h-9 rounded-lg text-[10px] font-bold border transition-all ${selecionado ? 'bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-500/20' : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-500'}`}
+                            >
+                              {dia}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {form.configuracao.frequencia === 'personalizada' && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <label className={labelCls}>Datas Selecionadas no Calendário</label>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase">Recorrente?</span>
+                          <button 
+                            type="button"
+                            onClick={() => setForm({ ...form, configuracao: { ...form.configuracao, recorrente: !form.configuracao.recorrente }})}
+                            className={`w-8 h-4 rounded-full transition-colors relative ${form.configuracao.recorrente ? 'bg-purple-600' : 'bg-zinc-300 dark:bg-zinc-700'}`}
+                          >
+                            <div className={`absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${form.configuracao.recorrente ? 'translate-x-4' : ''}`} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                        <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                          {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, idx) => (
+                            <span key={`header-${idx}`} className="text-[9px] font-black text-zinc-400">{d}</span>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-7 gap-1">
+                          {/* Mock de Calendário para o Mês Atual */}
+                          {Array.from({ length: 31 }).map((_, i) => {
+                            const dia = i + 1;
+                            const dataStr = `2026-05-${dia.toString().padStart(2, '0')}`;
+                            const selecionada = (form.configuracao.datasSelecionadas || []).includes(dataStr);
+                            
+                            return (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => {
+                                  const atuais = form.configuracao.datasSelecionadas || [];
+                                  const novas = atuais.includes(dataStr)
+                                    ? atuais.filter(d => d !== dataStr)
+                                    : [...atuais, dataStr];
+                                  setForm({ ...form, configuracao: { ...form.configuracao, datasSelecionadas: novas }});
+                                }}
+                                className={`aspect-square flex items-center justify-center text-[10px] font-bold rounded-lg border transition-all ${selecionada ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-purple-300'}`}
+                              >
+                                {dia}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="mt-3 text-[9px] text-zinc-400 italic text-center">
+                          {form.configuracao.datasSelecionadas?.length || 0} datas selecionadas.
+                        </p>
+                      </div>
                     </div>
                   )}
 

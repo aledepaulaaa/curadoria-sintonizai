@@ -9,6 +9,7 @@ export function useInsights() {
   const [categorias, setCategorias] = React.useState<ChartData[]>([]);
   const [gratuitos, setGratuitos] = React.useState<ChartData[]>([]);
   const [topShared, setTopShared] = React.useState<{ id: string, nome: string, total: number }[]>([]);
+  const [pushStats, setPushStats] = React.useState<{ totalClicks: number, byPlatform: ChartData[], byDay: ChartData[] } | null>(null);
   const [carregando, setCarregando] = React.useState(true);
   const [erro, setErro] = React.useState<string | null>(null);
 
@@ -22,6 +23,7 @@ export function useInsights() {
         setCategorias(response.data.categorias);
         setGratuitos(response.data.gratuitos);
         setTopShared(response.data.topShared);
+        setPushStats(response.data.pushStats);
       } else {
         setErro(response.error || 'Falha ao carregar dados');
       }
@@ -34,5 +36,5 @@ export function useInsights() {
 
   React.useEffect(() => { carregar(); }, [carregar]);
 
-  return { kpis, categorias, gratuitos, topShared, carregando, erro, carregar };
+  return { kpis, categorias, gratuitos, topShared, pushStats, carregando, erro, carregar };
 }

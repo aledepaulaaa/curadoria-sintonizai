@@ -51,8 +51,10 @@ export interface Automacao {
 
   // Configuração de Execução
   configuracao: {
-    frequencia: 'uma_vez' | 'diaria' | 'semanal';
+    frequencia: 'uma_vez' | 'diaria' | 'semanal' | 'personalizada';
     diasSemana?: number[]; // [0, 1, 2...] para semanal
+    datasSelecionadas?: string[]; // ["2026-05-14", ...] para personalizada
+    recorrente?: boolean; // Se as datas selecionadas devem repetir anualmente
     ativa: boolean;
     horarioExecucao?: string; // HH:mm para periódicos
     dataExecucao?: string; // YYYY-MM-DD para uma_vez

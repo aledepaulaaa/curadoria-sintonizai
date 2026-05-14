@@ -9,12 +9,18 @@ export async function buscarInsights(): Promise<ActionResponse<{
   categorias: ChartData[];
   gratuitos: ChartData[];
   topShared: { id: string, nome: string, total: number }[];
+  pushStats: {
+    totalClicks: number;
+    byPlatform: ChartData[];
+    byDay: ChartData[];
+  }
 }>> {
   try {
-    const [eventosSnap, usersSnap, sharesSnap] = await Promise.all([
+    const [eventosSnap, usersSnap, sharesSnap, pushSnap] = await Promise.all([
       adminDb.collection('eventos').get(),
       adminDb.collection('usuarios').get(),
-      adminDb.collection('metricas_compartilhamento').orderBy('total', 'desc').limit(10).get()
+      adminDb.collection('metricas_compartilhamento').orderBy('total', 'desc').limit(10).get(),
+      adminDb.collection('metricas_push').get()
     ]);
 
     const eventos = eventosSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -64,7 +70,12 @@ export async function buscarInsights(): Promise<ActionResponse<{
         ],
         categorias: [],
         gratuitos: [],
-        topShared: []
+        topShared: [],
+        pushStats: {
+          totalClicks: 0,
+          byPlatform: [],
+          byDay: []
+        }
       });
     }
 
@@ -105,7 +116,35 @@ export async function buscarInsights(): Promise<ActionResponse<{
       { nome: 'Pago', valor: eventos.length - gratis, cor: '#FF9800' },
     ];
 
-    return createSuccessResponse({ kpis, categorias, gratuitos, topShared });
+    // Processar Métricas de Push
+    const totalClicks = pushSnap.size;
+    const platformMap: Record<string, number> = { ios: 0, android: 0 };
+    const dayMap: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+
+    pushSnap.docs.forEach(doc => {
+      const d = doc.data();
+      if (d.plataforma) platformMap[d.plataforma.toLowerCase()] = (platformMap[d.plataforma.toLowerCase()] || 0) + 1;
+      if (d.diaSemana !== undefined) dayMap[d.diaSemana] = (dayMap[d.diaSemana] || 0) + 1;
+    });
+
+    const pushStats = {
+      totalClicks,
+      byPlatform: [
+        { nome: 'iOS', valor: platformMap.ios || 0, cor: '#000000' },
+        { nome: 'Android', valor: platformMap.android || 0, cor: '#3DDC84' }
+      ],
+      byDay: [
+        { nome: 'Dom', valor: dayMap[0] },
+        { nome: 'Seg', valor: dayMap[1] },
+        { nome: 'Ter', valor: dayMap[2] },
+        { nome: 'Qua', valor: dayMap[3] },
+        { nome: 'Qui', valor: dayMap[4] },
+        { nome: 'Sex', valor: dayMap[5] },
+        { nome: 'Sáb', valor: dayMap[6] }
+      ]
+    };
+
+    return createSuccessResponse({ kpis, categorias, gratuitos, topShared, pushStats });
   } catch (error) {
     return handleActionError(error, 'buscarInsights');
   }

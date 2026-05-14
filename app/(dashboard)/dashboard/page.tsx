@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, RefreshCcw } from 'lucide-react';
+import { AlertTriangle, RefreshCcw, Zap } from 'lucide-react';
 import EmptyState from '@/src/components/common/EmptyState';
 import ChartCard from '@/src/components/dashboard/ChartCard';
 import KpiCard from '@/src/components/dashboard/KpiCard';
@@ -8,7 +8,13 @@ import { useInsights } from '@/src/hooks/useInsights';
 import { motion } from 'framer-motion';
 
 export default function DashboardPage() {
-  const { kpis, categorias, gratuitos, topShared, carregando, erro, carregar } = useInsights();
+  const { kpis, categorias, gratuitos, topShared, pushStats, carregando, erro, carregar } = useInsights();
+
+  // Injetar KPI de Push se disponível
+  const allKpis = [...kpis];
+  if (pushStats) {
+    allKpis.push({ label: 'Cliques Push', valor: pushStats.totalClicks, icone: 'Zap' });
+  }
 
   if (carregando) {
     return (
@@ -54,8 +60,8 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {kpis.map((kpi, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+            {allKpis.map((kpi, i) => (
               <KpiCard key={i} {...kpi} delay={i * 0.1} />
             ))}
           </div>
@@ -95,6 +101,25 @@ export default function DashboardPage() {
 
             <ChartCard titulo="Gratuito vs Pago" dados={gratuitos} tipo="pie" />
           </div>
+
+          {/* Push Analytics Section */}
+          {pushStats && (
+            <div className="space-y-6 pt-6 border-t border-zinc-100 dark:border-zinc-800">
+               <div className="flex items-center gap-3">
+                 <div className="p-1.5 bg-purple-600 rounded-lg">
+                   <Zap size={18} className="text-white" />
+                 </div>
+                 <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Engajamento de Notificações</h2>
+               </div>
+
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                 <ChartCard titulo="Cliques por Plataforma" dados={pushStats.byPlatform} tipo="pie" />
+                 <div className="lg:col-span-2">
+                   <ChartCard titulo="Cliques por Dia da Semana" dados={pushStats.byDay} tipo="bar" />
+                 </div>
+               </div>
+            </div>
+          )}
         </>
       )}
     </motion.div>
