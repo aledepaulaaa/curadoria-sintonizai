@@ -42,20 +42,16 @@ export default function ManualCuradoria() {
 
   // Achatando as taxonomias para seleção granular
   const categoriasAchatadas = React.useMemo(() => {
-    return Array.from(new Set(categorias.flatMap((c: any) => c.itens || []))).sort();
+    // Pega os labels dos documentos E os itens de dentro deles para garantir que nada escape
+    const labels = categorias.map((c: any) => c.label);
+    const subItens = categorias.flatMap((c: any) => c.itens || []);
+    return Array.from(new Set([...labels, ...subItens])).filter(Boolean).sort();
   }, [categorias]);
 
-  const estilosAchatados = React.useMemo(() => {
-    return Array.from(new Set(estilos.flatMap((e: any) => e.itens || []))).sort();
-  }, [estilos]);
-
-  const tiposAchatados = React.useMemo(() => {
-    return Array.from(new Set(tiposEvento.flatMap((t: any) => t.itens || []))).sort();
-  }, [tiposEvento]);
-
-  // Atualizar valores iniciais quando carregarem (MANTIDO VAZIO PARA CASCADE)
+  // Atualizar valores iniciais quando carregarem
   React.useEffect(() => {
     if (!loadingCategorias && !loadingEstilos && !loadingTipos) {
+      // Garantir que os estados não fiquem undefined
       setForm(prev => ({
         ...prev,
         categoria: prev.categoria || '',
@@ -78,11 +74,16 @@ export default function ManualCuradoria() {
     try {
       await criar({
         ...form,
-        local: { nome: form.localNome || 'Não informado', lat: -23.5505, lng: -46.6333 },
+        local: { 
+          nome: form.localNome || 'Não informado', 
+          lat: -23.5505, 
+          lng: -46.6333 
+        },
         dataInicio: `${form.dataInicio}T12:00:00Z`,
         fonte: 'curadoria_manual'
       } as any);
-      alert('Evento saved correctly!');
+      
+      alert('Evento salvo com sucesso!');
       setForm({
         nome: '',
         descricao: '',
@@ -101,6 +102,7 @@ export default function ManualCuradoria() {
         notaCuradoria: '',
       });
     } catch (err) {
+      console.error('Erro ao salvar evento:', err);
       alert('Erro ao salvar: ' + err);
     } finally {
       setSalvando(false);
@@ -108,7 +110,7 @@ export default function ManualCuradoria() {
   };
 
   const labelCls = "block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1";
-  const inputCls = "w-full px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 transition-all text-zinc-900 dark:text-white font-medium shadow-sm";
+  const inputCls = "w-full px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 transition-all text-zinc-900 dark:text-white font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed";
 
   return (
     <>
@@ -177,15 +179,28 @@ export default function ManualCuradoria() {
                     className={inputCls}
                   >
                     <option value="">{form.categoria ? 'Selecione o Tipo' : 'Escolha Categoria primeiro'}</option>
-                    {tiposEvento
-                      .filter((g: any) => g.label.toLowerCase() === form.categoria.toLowerCase())
-                      .flatMap((g: any) => g.itens || [])
-                      .sort()
-                      .map((tipo: string) => (
+                    {(() => {
+                      // Tenta filtrar pelo label da categoria
+                      const filtrados = tiposEvento
+                        .filter((g: any) => 
+                          g.label?.trim().toLowerCase() === form.categoria.trim().toLowerCase() ||
+                          g.id?.trim().toLowerCase() === form.categoria.trim().toLowerCase()
+                        )
+                        .flatMap((g: any) => g.itens || []);
+
+                      // Se não achar nada específico para essa categoria, mostra TODOS os tipos como fallback
+                      const listaFinal = filtrados.length > 0 
+                        ? filtrados 
+                        : Array.from(new Set(tiposEvento.flatMap((g: any) => g.itens || [])));
+
+                      return listaFinal.sort().map((tipo: string) => (
                         <option key={tipo} value={tipo}>{tipo}</option>
-                      ))
-                    }
+                      ));
+                    })()}
                   </select>
+                  {!tiposEvento.some(g => g.label?.trim().toLowerCase() === form.categoria.trim().toLowerCase()) && form.categoria && (
+                    <p className="text-[9px] text-amber-500 mt-1 font-bold animate-pulse">⚠️ Usando lista genérica (sem grupo específico)</p>
+                  )}
                 </div>
                 <div>
                   <label className={labelCls}>Estilo</label>
@@ -196,14 +211,24 @@ export default function ManualCuradoria() {
                     className={inputCls}
                   >
                     <option value="">{form.tipo_evento ? 'Selecione o Estilo' : 'Escolha Tipo primeiro'}</option>
-                    {estilos
-                      .filter((g: any) => g.label.toLowerCase() === form.tipo_evento.toLowerCase())
-                      .flatMap((g: any) => g.itens || [])
-                      .sort()
-                      .map((estilo: string) => (
+                    {(() => {
+                      // Tenta filtrar pelo label do tipo
+                      const filtrados = estilos
+                        .filter((g: any) => 
+                          g.label?.trim().toLowerCase() === form.tipo_evento.trim().toLowerCase() ||
+                          g.id?.trim().toLowerCase() === form.tipo_evento.trim().toLowerCase()
+                        )
+                        .flatMap((g: any) => g.itens || []);
+
+                      // Fallback para todos os estilos se não achar grupo específico
+                      const listaFinal = filtrados.length > 0 
+                        ? filtrados 
+                        : Array.from(new Set(estilos.flatMap((g: any) => g.itens || [])));
+
+                      return listaFinal.sort().map((estilo: string) => (
                         <option key={estilo} value={estilo}>{estilo}</option>
-                      ))
-                    }
+                      ));
+                    })()}
                   </select>
                 </div>
               </div>
