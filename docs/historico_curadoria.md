@@ -1,5 +1,12 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [4.1] — 2026-05-15 — Geocorreção e Inteligência de Localização
+### ✨ Funcionalidades
+- **Filtro de Localização**: Novo card "Localização" no dashboard de eventos que detecta automaticamente eventos sem latitude/longitude.
+- **Edição de Coordenadas (Individual)**: Adicionados campos de Latitude e Longitude no `EventoForm` para ajuste manual preciso.
+- **Edição em Massa Geográfica**: O `BulkEditModal` agora permite definir coordenadas para múltiplos eventos de uma vez, facilitando o ajuste de locais recorrentes.
+- **Preservação de Dados**: Uso de notação de ponto para atualizações no Firestore, garantindo que o nome do local não seja sobrescrevido ao ajustar coordenadas em lote.
+
 ## [4.0] — 2026-05-13 — Estabilidade e Intuição em Automações
 ### ✨ Funcionalidades
 - **UX de Automação Refinada**: Melhoria nos nomes das opções de destino ("Ao clicar, levar para") para tornar o fluxo mais intuitivo (Deep Links dinâmicos vs fixos).

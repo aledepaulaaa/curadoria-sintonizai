@@ -3,7 +3,7 @@ import Modal from '../common/Modal';
 import { Evento } from '@/src/types/evento';
 import EventoForm from '../curadoria/EventoForm';
 import { useEventos } from '@/src/hooks/useEventos';
-import { Calendar, Clock, MapPin, Tag, Info, Link as LinkIcon, Star, Share2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Tag, Info, Link as LinkIcon, Star, Share2, Accessibility } from 'lucide-react';
 import { formatarData } from '@/src/utils/dateUtils';
 
 interface EventDetailModalProps {
@@ -67,6 +67,11 @@ export default function EventDetailModal({ evento, isOpen, onClose }: EventDetai
                   {evento.estilo && (
                     <span className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700">
                       {evento.estilo}
+                    </span>
+                  )}
+                  {evento.acessibilidade && (
+                    <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-bold border border-emerald-200 dark:border-emerald-500/20 flex items-center gap-1">
+                      <Accessibility size={12} /> Acessível
                     </span>
                   )}
                 </div>

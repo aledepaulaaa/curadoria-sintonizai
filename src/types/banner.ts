@@ -34,4 +34,19 @@ export interface BannerDestaque {
   cidade?: string;
   categorias: string[];
   aviso?: string;
+  
+  // Ação ao clicar no banner
+  acao?: {
+    tipo: 'evento' | 'filtro' | 'externo' | 'tab';
+    eventoId?: string; // Para tipo 'evento'
+    filtros?: {
+      distanciaMax?: number;
+      data?: 'hoje' | 'amanha' | 'fds' | string;
+      tipoEntrada?: 'gratis' | 'pago' | 'todos';
+      categorias?: string[];
+      estilos?: string[];
+    };
+    url?: string; // Para tipo 'externo'
+    tab?: 'home' | 'explorar' | 'favoritos' | 'perfil'; // Para tipo 'tab'
+  };
 }

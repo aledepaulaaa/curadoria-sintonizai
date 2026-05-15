@@ -755,7 +755,8 @@ export default function GeminiChat() {
                             gratuito: false,
                             preco: "R$ 450,00",
                             linkIngresso: "https://ticketmaster.com.br",
-                            notaCuradoria: "Destaque da Curadoria: Chegue cedo!"
+                            notaCuradoria: "Destaque da Curadoria: Chegue cedo!",
+                            acessibilidade: true
                           };
                           navigator.clipboard.writeText(JSON.stringify(json, null, 2));
                           alert('Copiado para a área de transferência!');
@@ -783,7 +784,8 @@ export default function GeminiChat() {
   "gratuito": false,
   "preco": "R$ 0,00",
   "linkIngresso": "URL",
-  "notaCuradoria": "Aviso curto (máx 100 caracteres)"
+  "notaCuradoria": "Aviso curto (máx 100 caracteres)",
+  "acessibilidade": true
 }`}
                    </pre>
                 </div>

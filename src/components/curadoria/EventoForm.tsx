@@ -37,6 +37,9 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
     imagemUrl: inicial?.imagemUrl || '',
     indicadoPor: inicial?.indicadoPor || null as any,
     notaCuradoria: inicial?.notaCuradoria || '',
+    acessibilidade: inicial?.acessibilidade || false,
+    lat: inicial?.local?.lat?.toString() || '',
+    lng: inicial?.local?.lng?.toString() || '',
   });
 
   const categoriasAchatadas = React.useMemo(() => {
@@ -80,7 +83,11 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
         descricao: form.descricao || form.nome,
         dataInicio: `${form.dataInicio}T12:00:00Z`,
         horario: form.horario || 'Confirmar',
-        local: { nome: form.localNome || 'Não informado', lat: -23.5505, lng: -46.6333 },
+        local: { 
+          nome: form.localNome || 'Não informado', 
+          lat: form.lat ? Number(form.lat.replace(',', '.')) : 0, 
+          lng: form.lng ? Number(form.lng.replace(',', '.')) : 0 
+        },
         endereco: form.endereco,
         categoria: form.categoria,
         bombando: inicial?.bombando || false,
@@ -94,11 +101,16 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
         imagemUrl: form.imagemUrl,
         indicadoPor: form.indicadoPor || undefined,
         notaCuradoria: form.notaCuradoria,
+        acessibilidade: form.acessibilidade,
         fonte: inicial?.fonte || (form.indicadoPor ? 'indicacao_usuario' : 'curadoria_manual'),
       } as any);
       if (!inicial) {
-        setForm({ nome: '', descricao: '', dataInicio: '', horario: '', localNome: '', endereco: '',
-          categoria: categorias[0]?.label || '', estilo: estilos[0]?.label || '', tipo_evento: tiposAchatados[0] || '', gratuito: false, preco: '', linkIngresso: '', imagemUrl: '', indicadoPor: null, notaCuradoria: '' });
+        setForm({ 
+          nome: '', descricao: '', dataInicio: '', horario: '', localNome: '', endereco: '',
+          categoria: categorias[0]?.label || '', estilo: estilos[0]?.label || '', tipo_evento: tiposAchatados[0] || '', 
+          gratuito: false, preco: '', linkIngresso: '', imagemUrl: '', indicadoPor: null, notaCuradoria: '', 
+          acessibilidade: false, lat: '', lng: '' 
+        });
       }
     } finally {
       setSalvando(false);
@@ -156,6 +168,16 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
                 </optgroup>
               ))}
             </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Latitude</label>
+              <input value={form.lat} onChange={(e) => handleChange('lat', e.target.value)} className={inputCls} placeholder="-23.5505" />
+            </div>
+            <div>
+              <label className={labelCls}>Longitude</label>
+              <input value={form.lng} onChange={(e) => handleChange('lng', e.target.value)} className={inputCls} placeholder="-46.6333" />
+            </div>
           </div>
         </div>
 
@@ -234,7 +256,7 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
         <p className="text-[10px] text-purple-500 mt-1 font-medium">Esta nota aparecerá com destaque no card do evento no App.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="flex flex-col justify-center gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center gap-3">
             <input type="checkbox" id="gratuito" checked={form.gratuito} onChange={(e) => handleChange('gratuito', e.target.checked)}
@@ -242,6 +264,15 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
             <label htmlFor="gratuito" className="text-sm font-bold text-zinc-700 dark:text-zinc-300 cursor-pointer">Evento Gratuito</label>
           </div>
           <p className="text-[10px] text-zinc-500 uppercase font-black ml-8 tracking-widest">Aparecerá como "Grátis" no App</p>
+        </div>
+
+        <div className="flex flex-col justify-center gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center gap-3">
+            <input type="checkbox" id="acessibilidade" checked={form.acessibilidade} onChange={(e) => handleChange('acessibilidade', e.target.checked)}
+              className="w-5 h-5 rounded-lg accent-purple-600 cursor-pointer" />
+            <label htmlFor="acessibilidade" className="text-sm font-bold text-zinc-700 dark:text-zinc-300 cursor-pointer">Acessibilidade PCD</label>
+          </div>
+          <p className="text-[10px] text-zinc-500 uppercase font-black ml-8 tracking-widest">Exibe ícone de acessibilidade</p>
         </div>
 
         <div className={`transition-all ${form.gratuito ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>

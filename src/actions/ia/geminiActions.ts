@@ -62,7 +62,8 @@ const tools = [
                   gratuito: { type: 'boolean' },
                   preco: { type: 'string' },
                   linkIngresso: { type: 'string' },
-                  notaCuradoria: { type: 'string', description: 'Nota ou aviso importante da curadoria para o público (máx 100 caracteres)' }
+                  notaCuradoria: { type: 'string', description: 'Nota ou aviso importante da curadoria para o público (máx 100 caracteres)' },
+                  acessibilidade: { type: 'boolean', description: 'Se o evento possui acessibilidade para pessoas com deficiência' }
                 },
                 required: ['nome', 'dataInicio', 'local', 'tipo_evento', 'categoria']
               }
@@ -132,8 +133,9 @@ REGRAS DE VALIDAÇÃO:
 2. HORÁRIOS: HH:MM ou "Confirmar no link". NUNCA ADIVINHE OU ESTIME. Se houver dúvida, mantenha "Confirmar no link".
 3. DUPLICIDADE: A ferramenta 'salvar_evento_no_firestore' JÁ CHECA DUPLICATAS AUTOMATICAMENTE. Não é necessário usar 'buscar_eventos' antes de salvar novos eventos, a menos que o usuário peça explicitamente para verificar antes.
 4. TAXONOMIA: Siga estritamente Categoria > Tipo > Estilo conforme as listas fornecidas.
-5. CAPACIDADE MASSIVA: Você pode processar lotes de até 350 eventos por vez. Para lotes maiores, divida o processamento e informe o progresso (ex: "Processando 1-50 de 350...").
-6. FORMATOS FLEXÍVEIS: Se receber múltiplos blocos JSON soltos (mesmo sem estar dentro de um array []), interprete-os como um lote de eventos e use 'salvar_evento_no_firestore' para processá-los todos de uma vez.
+5. ACESSIBILIDADE: Tente identificar se o evento é acessível (PCD). Se houver menção a "acessibilidade", "PCD", "rampas", "elevadores", defina como true.
+6. CAPACIDADE MASSIVA: Você pode processar lotes de até 350 eventos por vez. Para lotes maiores, divida o processamento e informe o progresso (ex: "Processando 1-50 de 350...").
+7. FORMATOS FLEXÍVEIS: Se receber múltiplos blocos JSON soltos (mesmo sem estar dentro de um array []), interprete-os como um lote de eventos e use 'salvar_evento_no_firestore' para processá-los todos de uma vez.
 
 NOTA DA CURADORIA (notaCuradoria):
 - Máximo 100 caracteres.
@@ -153,7 +155,8 @@ ESTRUTURA JSON ESPERADA (Exemplo):
   "gratuito": true,
   "preco": "R$ 50,00",
   "linkIngresso": "https://...",
-  "notaCuradoria": "Aviso importante aqui"
+  "notaCuradoria": "Aviso importante aqui",
+  "acessibilidade": true
 }
 
 CAPACIDADES ESPECIAIS:

@@ -25,6 +25,7 @@ import {
   alternarStatusAutomacao 
 } from '@/src/actions/automacoes/automacoesActions';
 import DataSelector from '@/src/components/common/DataSelector';
+import CalendarMultiPicker from '@/src/components/common/CalendarMultiPicker';
 
 const GATILHOS: Record<AutomacaoGatilho, { label: string; icon: string; desc: string }> = {
   evento_salvo: { label: 'Evento Salvo', icon: '🔖', desc: 'Dispara quando o usuário favorita um evento' },
@@ -248,54 +249,27 @@ export default function AutomacoesPage() {
 
                   {form.configuracao.frequencia === 'personalizada' && (
                     <div className="space-y-4">
-                      <div className="flex justify-between items-end">
-                        <label className={labelCls}>Datas Selecionadas no Calendário</label>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase">Recorrente?</span>
-                          <button 
-                            type="button"
-                            onClick={() => setForm({ ...form, configuracao: { ...form.configuracao, recorrente: !form.configuracao.recorrente }})}
-                            className={`w-8 h-4 rounded-full transition-colors relative ${form.configuracao.recorrente ? 'bg-purple-600' : 'bg-zinc-300 dark:bg-zinc-700'}`}
-                          >
-                            <div className={`absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${form.configuracao.recorrente ? 'translate-x-4' : ''}`} />
-                          </button>
-                        </div>
-                      </div>
+                      <CalendarMultiPicker 
+                        selectedDates={form.configuracao.datasSelecionadas || []}
+                        onDatesChange={(datas) => setForm({ 
+                          ...form, 
+                          configuracao: { ...form.configuracao, datasSelecionadas: datas } 
+                        })}
+                        recorrente={form.configuracao.recorrente}
+                      />
                       
-                      <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                        <div className="grid grid-cols-7 gap-1 text-center mb-2">
-                          {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, idx) => (
-                            <span key={`header-${idx}`} className="text-[9px] font-black text-zinc-400">{d}</span>
-                          ))}
+                      <div className="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900/10 rounded-2xl border border-purple-100 dark:border-purple-900/20">
+                        <div className="flex items-center gap-2">
+                           <Info size={14} className="text-purple-500" />
+                           <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Opção Recorrente</span>
                         </div>
-                        <div className="grid grid-cols-7 gap-1">
-                          {/* Mock de Calendário para o Mês Atual */}
-                          {Array.from({ length: 31 }).map((_, i) => {
-                            const dia = i + 1;
-                            const dataStr = `2026-05-${dia.toString().padStart(2, '0')}`;
-                            const selecionada = (form.configuracao.datasSelecionadas || []).includes(dataStr);
-                            
-                            return (
-                              <button
-                                key={i}
-                                type="button"
-                                onClick={() => {
-                                  const atuais = form.configuracao.datasSelecionadas || [];
-                                  const novas = atuais.includes(dataStr)
-                                    ? atuais.filter(d => d !== dataStr)
-                                    : [...atuais, dataStr];
-                                  setForm({ ...form, configuracao: { ...form.configuracao, datasSelecionadas: novas }});
-                                }}
-                                className={`aspect-square flex items-center justify-center text-[10px] font-bold rounded-lg border transition-all ${selecionada ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-purple-300'}`}
-                              >
-                                {dia}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <p className="mt-3 text-[9px] text-zinc-400 italic text-center">
-                          {form.configuracao.datasSelecionadas?.length || 0} datas selecionadas.
-                        </p>
+                        <button 
+                          type="button"
+                          onClick={() => setForm({ ...form, configuracao: { ...form.configuracao, recorrente: !form.configuracao.recorrente }})}
+                          className={`w-10 h-5 rounded-full transition-colors relative ${form.configuracao.recorrente ? 'bg-purple-600' : 'bg-zinc-300 dark:bg-zinc-700'}`}
+                        >
+                          <div className={`absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition-transform ${form.configuracao.recorrente ? 'translate-x-5' : ''}`} />
+                        </button>
                       </div>
                     </div>
                   )}

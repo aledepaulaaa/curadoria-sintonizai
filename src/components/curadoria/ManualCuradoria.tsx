@@ -4,7 +4,8 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar, MapPin, Tag,
-  Eye, Save, Image as ImageIcon, Sparkles, Loader2
+  Eye, Save, Image as ImageIcon, Sparkles, Loader2,
+  Accessibility
 } from 'lucide-react';
 import { useEventos } from '@/src/hooks/useEventos';
 import { useCategorias } from '@/src/hooks/useCategorias';
@@ -38,6 +39,7 @@ export default function ManualCuradoria() {
     imagemUrl: '',
     indicadoPor: null as any,
     notaCuradoria: '',
+    acessibilidade: false,
   });
 
   // Achatando as taxonomias para seleção granular
@@ -100,6 +102,7 @@ export default function ManualCuradoria() {
         imagemUrl: '',
         indicadoPor: null,
         notaCuradoria: '',
+        acessibilidade: false,
       });
     } catch (err) {
       console.error('Erro ao salvar evento:', err);
@@ -233,6 +236,29 @@ export default function ManualCuradoria() {
                 </div>
               </div>
 
+              {/* Acessibilidade */}
+              <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${form.acessibilidade ? 'bg-blue-100 text-blue-600' : 'bg-zinc-100 text-zinc-400'}`}>
+                    <Accessibility size={18} />
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-tight">Evento Acessível?</span>
+                    <p className="text-[10px] text-zinc-500 font-medium">Possui rampas, elevadores ou auxílio?</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleChange('acessibilidade', !form.acessibilidade)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${form.acessibilidade ? 'bg-blue-500' : 'bg-zinc-300 dark:bg-zinc-700'}`}
+                >
+                  <motion.div
+                    animate={{ x: form.acessibilidade ? 26 : 2 }}
+                    className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow-sm"
+                  />
+                </button>
+              </div>
+
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className={labelCls}>Imagem do Evento</label>
@@ -321,8 +347,9 @@ export default function ManualCuradoria() {
 
               {/* Conteúdo */}
               <div className="p-5 flex-1 flex flex-col">
-                <h3 className="text-xl font-black text-zinc-900 dark:text-white leading-tight mb-2 truncate-2">
+                <h3 className="text-xl font-black text-zinc-900 dark:text-white leading-tight mb-2 truncate-2 flex items-center gap-2">
                   {form.nome || 'Nome do Evento'}
+                  {form.acessibilidade && <Accessibility size={16} className="text-blue-500 shrink-0" />}
                 </h3>
 
                 {form.notaCuradoria && (

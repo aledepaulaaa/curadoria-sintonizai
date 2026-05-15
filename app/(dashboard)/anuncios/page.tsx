@@ -14,6 +14,7 @@ import {
   ArrowUp, ArrowDown, Smartphone, Clock
 } from 'lucide-react';
 import BannerPreview from '@/src/components/curadoria/BannerPreview';
+import BannerActionForm from '@/src/components/curadoria/BannerActionForm';
 
 const INITIAL_FORM: Omit<BannerDestaque, 'id'> = {
   titulo: '',
@@ -38,6 +39,16 @@ const INITIAL_FORM: Omit<BannerDestaque, 'id'> = {
   cidade: 'São Paulo',
   categorias: [],
   aviso: '',
+  acao: {
+    tipo: 'evento',
+    filtros: {
+      distanciaMax: 50,
+      data: 'tudo',
+      tipoEntrada: 'todos',
+      categorias: [],
+      estilos: [],
+    }
+  }
 };
 
 export default function AnunciosPage() {
@@ -369,6 +380,14 @@ export default function AnunciosPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Lógica de Destino */}
+              <div className="lg:col-span-3">
+                <BannerActionForm 
+                  acao={form.acao}
+                  onChange={(acao) => setForm({ ...form, acao })}
+                />
               </div>
 
               {/* Preview Mobile */}

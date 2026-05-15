@@ -5,7 +5,7 @@ import Modal from '../common/Modal';
 import ImageUpload from '../common/ImageUpload';
 import GallerySelector from '../curadoria/GallerySelector';
 import { useEventos } from '@/src/hooks/useEventos';
-import { Save, Loader2, Image as ImageIcon, Link as LinkIcon, Info } from 'lucide-react';
+import { Save, Loader2, Image as ImageIcon, Link as LinkIcon, Info, MapPin } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 
 interface BulkEditModalProps {
@@ -21,10 +21,12 @@ export default function BulkEditModal({ ids, isOpen, onClose }: BulkEditModalPro
   const [form, setForm] = React.useState({
     imagemUrl: '',
     linkIngresso: '',
+    lat: '',
+    lng: '',
   });
 
   const handleSalvar = async () => {
-    if (!form.imagemUrl && !form.linkIngresso) {
+    if (!form.imagemUrl && !form.linkIngresso && !form.lat && !form.lng) {
       alert('Preencha ao menos um campo para atualizar!');
       return;
     }
@@ -34,6 +36,10 @@ export default function BulkEditModal({ ids, isOpen, onClose }: BulkEditModalPro
       const data: any = {};
       if (form.imagemUrl) data.imagemUrl = form.imagemUrl;
       if (form.linkIngresso) data.linkIngresso = form.linkIngresso;
+      
+      // Usar notação de ponto para atualizar campos aninhados no Firestore sem sobrescrever o objeto 'local' inteiro
+      if (form.lat) data['local.lat'] = Number(form.lat.replace(',', '.'));
+      if (form.lng) data['local.lng'] = Number(form.lng.replace(',', '.'));
 
       await atualizarEmMassa(ids, data);
       alert(`${ids.length} eventos atualizados com sucesso!`);
@@ -83,6 +89,31 @@ export default function BulkEditModal({ ids, isOpen, onClose }: BulkEditModalPro
               placeholder="https://..."
               className="w-full px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 transition-all text-zinc-900 dark:text-white font-medium shadow-sm"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1 flex items-center gap-2">
+                <MapPin size={14} className="text-purple-500" /> Latitude
+              </label>
+              <input 
+                value={form.lat}
+                onChange={(e) => setForm(p => ({ ...p, lat: e.target.value }))}
+                placeholder="-23.5505"
+                className="w-full px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 transition-all text-zinc-900 dark:text-white font-medium shadow-sm"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1 flex items-center gap-2">
+                <MapPin size={14} className="text-purple-500" /> Longitude
+              </label>
+              <input 
+                value={form.lng}
+                onChange={(e) => setForm(p => ({ ...p, lng: e.target.value }))}
+                placeholder="-46.6333"
+                className="w-full px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 transition-all text-zinc-900 dark:text-white font-medium shadow-sm"
+              />
+            </div>
           </div>
         </div>
 

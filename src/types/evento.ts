@@ -38,6 +38,7 @@ export interface Evento {
     foto?: string;
   };
   notaCuradoria?: string;
+  acessibilidade?: boolean;
 }
 
 export interface EventoRaw {

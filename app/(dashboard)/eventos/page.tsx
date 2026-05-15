@@ -23,7 +23,7 @@ export default function EventosPage() {
   const [confirmarEditarLote, setConfirmarEditarLote] = React.useState(false);
   const [eventoSelecionado, setEventoSelecionado] = React.useState<Evento | null>(null);
   const [selecionados, setSelecionados] = React.useState<Set<string>>(new Set());
-  const [filtroQualidade, setFiltroQualidade] = React.useState<'todos' | 'imagem' | 'texto' | 'caracteres' | 'taxonomia'>('todos');
+  const [filtroQualidade, setFiltroQualidade] = React.useState<'todos' | 'imagem' | 'texto' | 'caracteres' | 'taxonomia' | 'localizacao'>('todos');
 
   const [ordem, setOrdem] = React.useState<{ col: string; desc: boolean }>({ col: 'dataInicio', desc: false });
   const [filtrosColuna, setFiltrosColuna] = React.useState({
@@ -100,6 +100,8 @@ export default function EventosPage() {
       );
     } else if (filtroQualidade === 'taxonomia') {
       result = result.filter(e => !e.categoria || !e.tipo_evento || !e.estilo);
+    } else if (filtroQualidade === 'localizacao') {
+      result = result.filter(e => !e.local?.lat || !e.local?.lng);
     }
 
     // Filtro Global
@@ -198,8 +200,10 @@ export default function EventosPage() {
     ).length;
     
     const comErroTaxonomia = eventos.filter(e => !e.categoria || !e.tipo_evento || !e.estilo).length;
+    
+    const semLocalizacao = eventos.filter(e => !e.local?.lat || !e.local?.lng).length;
 
-    return { total: eventos.length, comErroImagem, comErroTexto, comErroCaracteres, comErroTaxonomia };
+    return { total: eventos.length, comErroImagem, comErroTexto, comErroCaracteres, comErroTaxonomia, semLocalizacao };
   }, [eventos]);
 
   const paginados = filtrados.slice(pagina * itensPorPagina, (pagina + 1) * itensPorPagina);
@@ -299,6 +303,17 @@ export default function EventosPage() {
             {metricas.comErroTaxonomia > 0 && <span className="flex h-2 w-2 rounded-full bg-pink-400 animate-pulse" />}
           </div>
           <p className="text-2xl font-bold">{metricas.comErroTaxonomia}</p>
+        </button>
+
+        <button 
+          onClick={() => setFiltroQualidade('localizacao')}
+          className={`p-4 rounded-2xl border transition-all text-left ${filtroQualidade === 'localizacao' ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-500'}`}
+        >
+          <div className="flex items-center justify-between">
+            <p className={`text-xs font-black uppercase tracking-widest ${filtroQualidade === 'localizacao' ? 'text-blue-200' : 'text-zinc-400'}`}>Localização</p>
+            {metricas.semLocalizacao > 0 && <span className="flex h-2 w-2 rounded-full bg-blue-400 animate-pulse" />}
+          </div>
+          <p className="text-2xl font-bold">{metricas.semLocalizacao}</p>
         </button>
       </div>
 
