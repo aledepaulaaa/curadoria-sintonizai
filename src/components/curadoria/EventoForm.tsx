@@ -6,10 +6,11 @@ import ImageUpload from '../common/ImageUpload';
 import { useCategorias } from '@/src/hooks/useCategorias';
 import { useEstilos } from '@/src/hooks/useEstilos';
 import { useTiposEvento } from '@/src/hooks/useTiposEvento';
-import { Image as ImageIcon, UserCheck } from 'lucide-react';
+import { Image as ImageIcon, UserCheck, MapPin } from 'lucide-react';
 import GallerySelector from './GallerySelector';
 import UserSelector from './UserSelector';
 import { AnimatePresence } from 'framer-motion';
+import LocationPicker from './LocationPicker';
 
 interface EventoFormProps {
   onSubmit: (evento: Omit<Evento, 'id'>) => Promise<void>;
@@ -171,13 +172,30 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Latitude</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1 flex items-center gap-2">
+                <MapPin size={14} className="text-purple-500" /> Latitude
+              </label>
               <input value={form.lat} onChange={(e) => handleChange('lat', e.target.value)} className={inputCls} placeholder="-23.5505" />
             </div>
             <div>
-              <label className={labelCls}>Longitude</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1 flex items-center gap-2">
+                <MapPin size={14} className="text-purple-500" /> Longitude
+              </label>
               <input value={form.lng} onChange={(e) => handleChange('lng', e.target.value)} className={inputCls} placeholder="-46.6333" />
             </div>
+          </div>
+          
+          <div className="pt-2">
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1">
+              Mapa de Ajuste
+            </label>
+            <LocationPicker 
+              initialLat={form.lat ? Number(form.lat) : undefined}
+              initialLng={form.lng ? Number(form.lng) : undefined}
+              onLocationSelect={(lat, lng) => {
+                setForm(p => ({ ...p, lat: lat.toString(), lng: lng.toString() }));
+              }}
+            />
           </div>
         </div>
 

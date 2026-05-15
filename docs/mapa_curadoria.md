@@ -1,4 +1,4 @@
-# Mapa Curadoria Sintonizaí - v4.1
+# Mapa Curadoria Sintonizaí - v4.2
 
 ## 🧠 Inteligência & Ingestão
 - **Image Editor (v1.0)**: Motor de corte (`react-easy-crop`) integrado ao upload. Força proporção 16:9 para eventos e 1:1 para perfis, garantindo integridade visual no App.
@@ -16,3 +16,4 @@
 - **Seletores Inteligentes (v3.7)**: Componente `DataSelector` integrado ao fluxo de Automações e Banners, eliminando a necessidade de IDs manuais e facilitando o vínculo de dados por busca textual.
 - **Banner Sync & One-time Scheduling (v3.8)**: Motor de sincronização automática entre a Gestão de Banners e o Módulo de Automações. Suporte a agendamentos de disparo único com data específica.
 - **Geocorreção & Gestão Geográfica (v4.1)**: Novo sistema de detecção de erros de localização. Inclui card de métrica "Localização" no dashboard de eventos, filtragem instantânea de eventos sem coordenadas e suporte a edição manual/massiva de Latitude e Longitude via `BulkEditModal` e `EventoForm`.
+- **Integração Google Maps (v4.2)**: Implementação do `LocationPicker` visual com Autocomplete e marcador arrastável para precisão geográfica total no painel administrativo.

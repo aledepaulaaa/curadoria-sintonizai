@@ -7,6 +7,7 @@ import GallerySelector from '../curadoria/GallerySelector';
 import { useEventos } from '@/src/hooks/useEventos';
 import { Save, Loader2, Image as ImageIcon, Link as LinkIcon, Info, MapPin } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import LocationPicker from '../curadoria/LocationPicker';
 
 interface BulkEditModalProps {
   ids: string[];
@@ -114,6 +115,19 @@ export default function BulkEditModal({ ids, isOpen, onClose }: BulkEditModalPro
                 className="w-full px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 transition-all text-zinc-900 dark:text-white font-medium shadow-sm"
               />
             </div>
+          </div>
+
+          <div className="pt-2">
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1">
+              Mapa de Ajuste
+            </label>
+            <LocationPicker 
+              initialLat={form.lat ? Number(form.lat) : undefined}
+              initialLng={form.lng ? Number(form.lng) : undefined}
+              onLocationSelect={(lat, lng) => {
+                setForm(p => ({ ...p, lat: lat.toString(), lng: lng.toString() }));
+              }}
+            />
           </div>
         </div>
 
