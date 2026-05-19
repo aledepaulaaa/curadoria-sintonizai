@@ -67,6 +67,21 @@ export default function ManualCuradoria() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const estilosSelecionados = React.useMemo(() => {
+    return form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+  }, [form.estilo]);
+
+  const handleToggleEstilo = (estiloNome: string) => {
+    const current = form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    let next: string[];
+    if (current.includes(estiloNome)) {
+      next = current.filter((s: string) => s !== estiloNome);
+    } else {
+      next = [...current, estiloNome];
+    }
+    handleChange('estilo', next.join(', '));
+  };
+
   const handleSalvar = async () => {
     if (!form.nome || !form.dataInicio || !form.categoria) {
       alert('Nome, Data e Categoria são obrigatórios!');
@@ -153,7 +168,7 @@ export default function ManualCuradoria() {
                 <input value={form.localNome} onChange={e => handleChange('localNome', e.target.value)} className={inputCls} placeholder="Ex: Bar do Alemão" />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Categoria</label>
                   <select 
@@ -205,35 +220,60 @@ export default function ManualCuradoria() {
                     <p className="text-[9px] text-amber-500 mt-1 font-bold animate-pulse">⚠️ Usando lista genérica (sem grupo específico)</p>
                   )}
                 </div>
-                <div>
-                  <label className={labelCls}>Estilo</label>
-                  <select 
-                    value={form.estilo} 
-                    disabled={!form.tipo_evento}
-                    onChange={e => handleChange('estilo', e.target.value)} 
-                    className={inputCls}
-                  >
-                    <option value="">{form.tipo_evento ? 'Selecione o Estilo' : 'Escolha Tipo primeiro'}</option>
-                    {(() => {
-                      // Tenta filtrar pelo label do tipo
-                      const filtrados = estilos
-                        .filter((g: any) => 
-                          g.label?.trim().toLowerCase() === form.tipo_evento.trim().toLowerCase() ||
-                          g.id?.trim().toLowerCase() === form.tipo_evento.trim().toLowerCase()
-                        )
-                        .flatMap((g: any) => g.itens || []);
+              </div>
 
-                      // Fallback para todos os estilos se não achar grupo específico
-                      const listaFinal = filtrados.length > 0 
-                        ? filtrados 
-                        : Array.from(new Set(estilos.flatMap((g: any) => g.itens || [])));
+              <div>
+                <label className={labelCls}>Estilos Musicais (Múltiplos)</label>
+                <div className={`p-4 rounded-2xl border bg-zinc-50/50 dark:bg-zinc-800/20 max-h-48 overflow-y-auto ${
+                  !form.tipo_evento 
+                    ? 'border-zinc-200 dark:border-zinc-800 opacity-60' 
+                    : 'border-zinc-200 dark:border-zinc-700 shadow-inner'
+                }`}>
+                  {!form.tipo_evento ? (
+                    <span className="text-xs text-zinc-500 italic">Selecione o Tipo de Evento primeiro para habilitar</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {(() => {
+                        // Tenta filtrar pelo label do tipo
+                        const filtrados = estilos
+                          .filter((g: any) => 
+                            g.label?.trim().toLowerCase() === form.tipo_evento.trim().toLowerCase() ||
+                            g.id?.trim().toLowerCase() === form.tipo_evento.trim().toLowerCase()
+                          )
+                          .flatMap((g: any) => g.itens || []);
 
-                      return listaFinal.sort().map((estilo: string) => (
-                        <option key={estilo} value={estilo}>{estilo}</option>
-                      ));
-                    })()}
-                  </select>
+                        // Fallback para todos os estilos se não achar grupo específico
+                        const listaFinal = filtrados.length > 0 
+                          ? filtrados 
+                          : Array.from(new Set(estilos.flatMap((g: any) => g.itens || [])));
+
+                        return listaFinal.sort().map((estilo: string) => {
+                          const ativo = estilosSelecionados.includes(estilo);
+                          return (
+                            <button
+                              key={estilo}
+                              type="button"
+                              onClick={() => handleToggleEstilo(estilo)}
+                              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all border ${
+                                ativo 
+                                  ? 'bg-purple-600 border-purple-600 text-white shadow-sm' 
+                                  : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                              }`}
+                            >
+                              {estilo}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                  )}
                 </div>
+                {form.estilo ? (
+                  <div className="mt-2 p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/25 rounded-xl">
+                    <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest block mb-1">Selecionados ({estilosSelecionados.length})</span>
+                    <p className="text-xs text-zinc-700 dark:text-zinc-300 font-semibold">{form.estilo}</p>
+                  </div>
+                ) : null}
               </div>
 
               {/* Acessibilidade */}
@@ -376,9 +416,11 @@ export default function ManualCuradoria() {
                     <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest border border-blue-100 dark:border-blue-800/50">
                       {form.tipo_evento}
                     </span>
-                    <span className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest border border-purple-100 dark:border-purple-800/50">
-                      {form.estilo}
-                    </span>
+                    {form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean).map((style: string) => (
+                      <span key={style} className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest border border-purple-100 dark:border-purple-800/50">
+                        {style}
+                      </span>
+                    )) : null}
                   </div>
                 </div>
 

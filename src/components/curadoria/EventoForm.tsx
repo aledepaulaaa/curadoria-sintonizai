@@ -118,6 +118,21 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
     }
   };
 
+  const estilosSelecionados = React.useMemo(() => {
+    return form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+  }, [form.estilo]);
+
+  const handleToggleEstilo = (estiloNome: string) => {
+    const current = form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    let next: string[];
+    if (current.includes(estiloNome)) {
+      next = current.filter((s: string) => s !== estiloNome);
+    } else {
+      next = [...current, estiloNome];
+    }
+    handleChange('estilo', next.join(', '));
+  };
+
   const inputCls = "w-full px-4 py-3 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-purple-500 shadow-sm transition-all";
   const labelCls = "text-sm font-semibold text-zinc-700 dark:text-zinc-400 mb-1 block";
 
@@ -221,21 +236,49 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className={labelCls}>Estilo Musical / Linguagem</label>
-          <select value={form.estilo} onChange={(e) => handleChange('estilo', e.target.value)} className={inputCls}>
-            <option value="">Selecione o estilo</option>
+          <label className={labelCls}>Estilo Musical / Linguagem (Múltiplos)</label>
+          <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/20 max-h-56 overflow-y-auto space-y-3 shadow-inner">
             {estilos.map((grupo: any) => (
-              <optgroup key={grupo.id} label={grupo.label}>
-                {grupo.itens?.map((item: string) => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
-              </optgroup>
+              <div key={grupo.id} className="space-y-1.5">
+                <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">{grupo.label}</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {grupo.itens?.map((item: string) => {
+                    const ativo = estilosSelecionados.includes(item);
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => handleToggleEstilo(item)}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all border ${
+                          ativo 
+                            ? 'bg-purple-600 border-purple-600 text-white shadow-sm' 
+                            : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
-          </select>
+            {estilos.length === 0 && (
+              <span className="text-xs text-zinc-500 italic">Nenhum estilo disponível</span>
+            )}
+          </div>
+          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">Clique para selecionar múltiplos estilos musicais.</p>
         </div>
-        <div>
-          <label className={labelCls}>Link do Ingresso</label>
-          <input value={form.linkIngresso} onChange={(e) => handleChange('linkIngresso', e.target.value)} className={inputCls} placeholder="https://sympla.com.br/..." />
+        <div className="flex flex-col justify-between">
+          <div>
+            <label className={labelCls}>Link do Ingresso</label>
+            <input value={form.linkIngresso} onChange={(e) => handleChange('linkIngresso', e.target.value)} className={inputCls} placeholder="https://sympla.com.br/..." />
+          </div>
+          {form.estilo ? (
+            <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/25 rounded-xl">
+              <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest block mb-1">Selecionados ({estilosSelecionados.length})</span>
+              <p className="text-xs text-zinc-700 dark:text-zinc-300 font-semibold">{form.estilo}</p>
+            </div>
+          ) : null}
         </div>
       </div>
 

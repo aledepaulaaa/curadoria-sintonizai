@@ -1,5 +1,10 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [4.3] — 2026-05-18 — Métricas de Grades Compartilhadas
+### ✨ Funcionalidades
+- **Mapeamento de Importações**: Integração de acompanhamento na coleção `programacoes_compartilhadas` para coletar dados de viralidade.
+- **Engajamento Social**: Exibição e contagem incremental da métrica `totalImportacoes` sempre que um usuário importa uma grade no aplicativo móvel.
+
 ## [4.2] — 2026-05-15 — Integração Google Maps
 ### ✨ Funcionalidades
 - **LocationPicker Visual**: Implementação de mapa interativo nos formulários de evento (`EventoForm` e `BulkEditModal`).

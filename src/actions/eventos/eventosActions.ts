@@ -6,8 +6,25 @@ import type { Evento } from '@/src/types/evento';
 const COLLECTION = 'eventos';
 
 export async function listarEventos(): Promise<Evento[]> {
-  const snap = await adminDb.collection(COLLECTION).orderBy('dataInicio', 'asc').get();
-  return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Evento));
+  const [eventosSnap, sharesSnap] = await Promise.all([
+    adminDb.collection(COLLECTION).orderBy('dataInicio', 'asc').get(),
+    adminDb.collection('metricas_compartilhamento').get()
+  ]);
+
+  const sharesMap = new Map<string, number>();
+  sharesSnap.docs.forEach((doc) => {
+    sharesMap.set(doc.id, doc.data().total || 0);
+  });
+
+  return eventosSnap.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      shares: sharesMap.get(doc.id) || 0,
+      likes: Number(data.likes || 0)
+    } as Evento;
+  });
 }
 
 export async function criarEvento(evento: Omit<Evento, 'id'>): Promise<string> {

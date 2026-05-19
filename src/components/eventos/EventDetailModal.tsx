@@ -26,12 +26,12 @@ export default function EventDetailModal({ evento, isOpen, onClose }: EventDetai
   };
 
   return (
-    <Modal 
-      isOpen={isOpen} 
+    <Modal
+      isOpen={isOpen}
       onClose={() => {
         setIsEditing(false);
         onClose();
-      }} 
+      }}
       title={isEditing ? `Editando: ${evento.nome}` : 'Detalhes do Evento'}
       maxWidth="max-w-4xl"
     >
@@ -49,7 +49,7 @@ export default function EventDetailModal({ evento, isOpen, onClose }: EventDetai
               </div>
             )}
             <div className="absolute top-4 right-4 flex gap-2">
-               <span className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-lg ${evento.gratuito ? 'bg-green-500 text-white' : 'bg-purple-600 text-white'}`}>
+              <span className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-lg ${evento.gratuito ? 'bg-green-500 text-white' : 'bg-purple-600 text-white'}`}>
                 {evento.gratuito ? 'GRATUITO' : evento.preco || 'PAGO'}
               </span>
             </div>
@@ -64,11 +64,11 @@ export default function EventDetailModal({ evento, isOpen, onClose }: EventDetai
                   <span className="px-3 py-1 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full text-xs font-bold border border-purple-200 dark:border-purple-500/20">
                     {evento.tipo_evento || 'Evento'}
                   </span>
-                  {evento.estilo && (
-                    <span className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700">
-                      {evento.estilo}
+                  {evento.estilo && evento.estilo.split(',').map((s) => s.trim()).filter(Boolean).map((style) => (
+                    <span key={style} className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-full text-xs font-bold border border-zinc-200 dark:border-zinc-700">
+                      {style}
                     </span>
-                  )}
+                  ))}
                   {evento.acessibilidade && (
                     <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-bold border border-emerald-200 dark:border-emerald-500/20 flex items-center gap-1">
                       <Accessibility size={12} /> Acessível
@@ -104,39 +104,39 @@ export default function EventDetailModal({ evento, isOpen, onClose }: EventDetai
 
             <div className="space-y-6">
               <div className="p-6 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 space-y-4">
-                 <div>
-                    <div className="flex items-center gap-2 text-zinc-900 dark:text-white font-bold mb-2">
-                      <MapPin size={18} className="text-purple-500" />
-                      <span>Localização</span>
-                    </div>
-                    <p className="text-sm text-zinc-600 dark:text-zinc-300 font-semibold">{evento.local?.nome}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">{evento.endereco || 'Endereço não informado'}</p>
-                 </div>
+                <div>
+                  <div className="flex items-center gap-2 text-zinc-900 dark:text-white font-bold mb-2">
+                    <MapPin size={18} className="text-purple-500" />
+                    <span>Localização</span>
+                  </div>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-300 font-semibold">{evento.local?.nome}</p>
+                  {/* <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">{evento.endereco || 'Endereço não informado'}</p> */}
+                </div>
 
-                 <hr className="border-zinc-200 dark:border-zinc-800" />
+                <hr className="border-zinc-200 dark:border-zinc-800" />
 
-                 <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2 text-sm font-bold text-zinc-700 dark:text-zinc-400">
-                      <Star size={16} className="text-yellow-500 fill-yellow-500" />
-                      <span>{evento.likes || 0} Likes</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm font-bold text-zinc-700 dark:text-zinc-400">
-                      <Share2 size={16} className="text-blue-500" />
-                      <span>{evento.shares || 0} Shares</span>
-                    </div>
-                 </div>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2 text-sm font-bold text-zinc-700 dark:text-zinc-400">
+                    <Star size={16} className="text-yellow-500 fill-yellow-500" />
+                    <span>{evento.likes || 0} Likes</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm font-bold text-zinc-700 dark:text-zinc-400">
+                    <Share2 size={16} className="text-blue-500" />
+                    <span>{evento.shares || 0} Shares</span>
+                  </div>
+                </div>
 
-                 {evento.linkIngresso && (
-                    <a 
-                      href={evento.linkIngresso} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full py-3 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-xl shadow-black/10"
-                    >
-                      <LinkIcon size={16} />
-                      Ver Ingressos
-                    </a>
-                 )}
+                {evento.linkIngresso && (
+                  <a
+                    href={evento.linkIngresso}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-xl shadow-black/10"
+                  >
+                    <LinkIcon size={16} />
+                    Ver Ingressos
+                  </a>
+                )}
               </div>
 
               <button

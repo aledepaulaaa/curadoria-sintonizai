@@ -11,11 +11,11 @@ interface ImageUploadProps {
   aspectRatio?: number;
 }
 
-export default function ImageUpload({ 
-  value, 
-  onChange, 
+export default function ImageUpload({
+  value,
+  onChange,
   folder = 'eventos',
-  aspectRatio = 16 / 9 
+  aspectRatio = 16 / 9
 }: ImageUploadProps) {
   const [carregando, setCarregando] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
@@ -37,7 +37,7 @@ export default function ImageUpload({
       setImagemParaEditar(reader.result as string);
     };
     reader.readAsDataURL(file);
-    
+
     // Limpa o input para permitir selecionar o mesmo arquivo novamente se necessário
     e.target.value = '';
   };
@@ -71,8 +71,6 @@ export default function ImageUpload({
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-400">Imagem do Evento</label>
-
       <div className="relative group">
         {value ? (
           <div className="relative aspect-video rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">

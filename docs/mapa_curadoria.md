@@ -1,6 +1,7 @@
-# Mapa Curadoria Sintonizaí - v4.2
+# Mapa Curadoria Sintonizaí - v4.3
 
 ## 🧠 Inteligência & Ingestão
+- **Shared Schedules Metric Insights (v4.3)**: Acompanhamento de engajamento social através da coleção `programacoes_compartilhadas`. Captura do total de importações em lote (`totalImportacoes`), permitindo à equipe de curadoria mensurar o alcance viral e a popularidade de grades de eventos compartilhadas por usuários.
 - **Image Editor (v1.0)**: Motor de corte (`react-easy-crop`) integrado ao upload. Força proporção 16:9 para eventos e 1:1 para perfis, garantindo integridade visual no App.
 - **Gemini Chat (v3.1)**: Suporte a **formatos flexíveis** (JSONs soltos sem array). IA agora gerencia duplicidade via ferramenta, eliminando buscas redundantes.
 - **Experiência Expansível**: Chat com modo **Full Screen** (`Maximize2`) e input redimensionável (`resize-y`) com fonte `mono` para edição técnica.
