@@ -119,14 +119,18 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
   };
 
   const estilosSelecionados = React.useMemo(() => {
-    return form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    return form.estilo 
+      ? form.estilo.split(',').map((s: string) => s.trim().toLowerCase()).filter(Boolean) 
+      : [];
   }, [form.estilo]);
 
   const handleToggleEstilo = (estiloNome: string) => {
     const current = form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    const lowerNome = estiloNome.toLowerCase();
+    const existe = current.some((s: string) => s.toLowerCase() === lowerNome);
     let next: string[];
-    if (current.includes(estiloNome)) {
-      next = current.filter((s: string) => s !== estiloNome);
+    if (existe) {
+      next = current.filter((s: string) => s.toLowerCase() !== lowerNome);
     } else {
       next = [...current, estiloNome];
     }
@@ -237,13 +241,51 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className={labelCls}>Estilo Musical / Linguagem (Múltiplos)</label>
+          <div className="flex gap-2 mb-3">
+            <input 
+              type="text" 
+              placeholder="Adicionar estilo personalizado..." 
+              id="custom-style-input"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-900 dark:text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const val = e.currentTarget.value.trim();
+                  if (val) {
+                    const current = form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+                    if (!current.some(s => s.toLowerCase() === val.toLowerCase())) {
+                      handleChange('estilo', [...current, val].join(', '));
+                    }
+                    e.currentTarget.value = '';
+                  }
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const input = document.getElementById('custom-style-input') as HTMLInputElement;
+                const val = input?.value.trim();
+                if (val) {
+                  const current = form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+                  if (!current.some(s => s.toLowerCase() === val.toLowerCase())) {
+                    handleChange('estilo', [...current, val].join(', '));
+                  }
+                  input.value = '';
+                }
+              }}
+              className="px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm transition-colors active:scale-[0.97]"
+            >
+              +
+            </button>
+          </div>
           <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/20 max-h-56 overflow-y-auto space-y-3 shadow-inner">
             {estilos.map((grupo: any) => (
               <div key={grupo.id} className="space-y-1.5">
                 <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">{grupo.label}</span>
                 <div className="flex flex-wrap gap-1.5">
                   {grupo.itens?.map((item: string) => {
-                    const ativo = estilosSelecionados.includes(item);
+                    const ativo = estilosSelecionados.includes(item.toLowerCase());
                     return (
                       <button
                         key={item}
@@ -266,7 +308,7 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
               <span className="text-xs text-zinc-500 italic">Nenhum estilo disponível</span>
             )}
           </div>
-          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">Clique para selecionar múltiplos estilos musicais.</p>
+          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">Clique nos botões acima ou digite no campo de texto para adicionar estilos personalizados.</p>
         </div>
         <div className="flex flex-col justify-between">
           <div>

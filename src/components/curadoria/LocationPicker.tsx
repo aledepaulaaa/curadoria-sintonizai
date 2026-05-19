@@ -121,9 +121,9 @@ export default function LocationPicker({ initialLat, initialLng, onLocationSelec
         />
       </GoogleMap>
       
-      <div className="flex items-center gap-2 text-[10px] text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 p-2 rounded-lg border border-zinc-200 dark:border-zinc-800/50">
-        <MapPin className="w-3 h-3 text-purple-500" />
-        <span>Dica: Você pode arrastar o marcador roxo para ajustar a posição exata.</span>
+      <div className="flex items-center gap-2 text-xs text-purple-950 dark:text-purple-300 bg-purple-50/70 dark:bg-purple-950/20 p-3 rounded-xl border border-purple-100 dark:border-purple-900/30 transition-colors">
+        <MapPin className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+        <span className="font-medium">Dica: Você pode arrastar o marcador roxo para ajustar a posição exata.</span>
       </div>
     </div>
   );

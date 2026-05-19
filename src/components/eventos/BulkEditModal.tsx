@@ -5,7 +5,8 @@ import Modal from '../common/Modal';
 import ImageUpload from '../common/ImageUpload';
 import GallerySelector from '../curadoria/GallerySelector';
 import { useEventos } from '@/src/hooks/useEventos';
-import { Save, Loader2, Image as ImageIcon, Link as LinkIcon, Info, MapPin } from 'lucide-react';
+import { useCategorias } from '@/src/hooks/useCategorias';
+import { Save, Loader2, Image as ImageIcon, Link as LinkIcon, Info, MapPin, Tag } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import LocationPicker from '../curadoria/LocationPicker';
 
@@ -17,6 +18,7 @@ interface BulkEditModalProps {
 
 export default function BulkEditModal({ ids, isOpen, onClose }: BulkEditModalProps) {
   const { atualizarEmMassa } = useEventos();
+  const { categorias } = useCategorias();
   const [salvando, setSalvando] = React.useState(false);
   const [abrirGaleria, setAbrirGaleria] = React.useState(false);
   const [form, setForm] = React.useState({
@@ -24,10 +26,11 @@ export default function BulkEditModal({ ids, isOpen, onClose }: BulkEditModalPro
     linkIngresso: '',
     lat: '',
     lng: '',
+    categoria: '',
   });
 
   const handleSalvar = async () => {
-    if (!form.imagemUrl && !form.linkIngresso && !form.lat && !form.lng) {
+    if (!form.imagemUrl && !form.linkIngresso && !form.lat && !form.lng && !form.categoria) {
       alert('Preencha ao menos um campo para atualizar!');
       return;
     }
@@ -37,6 +40,7 @@ export default function BulkEditModal({ ids, isOpen, onClose }: BulkEditModalPro
       const data: any = {};
       if (form.imagemUrl) data.imagemUrl = form.imagemUrl;
       if (form.linkIngresso) data.linkIngresso = form.linkIngresso;
+      if (form.categoria) data.categoria = form.categoria;
       
       // Usar notação de ponto para atualizar campos aninhados no Firestore sem sobrescrever o objeto 'local' inteiro
       if (form.lat) data['local.lat'] = Number(form.lat.replace(',', '.'));
@@ -90,6 +94,26 @@ export default function BulkEditModal({ ids, isOpen, onClose }: BulkEditModalPro
               placeholder="https://..."
               className="w-full px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 transition-all text-zinc-900 dark:text-white font-medium shadow-sm"
             />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 ml-1 flex items-center gap-2">
+              <Tag size={14} className="text-purple-500" /> Nova Categoria
+            </label>
+            <select
+              value={form.categoria}
+              onChange={(e) => setForm(p => ({ ...p, categoria: e.target.value }))}
+              className="w-full px-4 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 transition-all text-zinc-900 dark:text-white font-medium shadow-sm"
+            >
+              <option value="">Manter categoria atual</option>
+              {categorias.map((grupo: any) => (
+                <optgroup key={grupo.id} label={grupo.label}>
+                  {grupo.itens?.map((item: string) => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -96,3 +96,71 @@ table {
   animation: ring 4s ease-in-out infinite;
   transform-origin: 50% 0;
 }
+
+/* Estilização do dropdown do Google Autocomplete (Places Autocomplete Container) */
+.pac-container {
+  background-color: white !important;
+  color: #1f2937 !important; /* zinc-800 */
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+  font-family: var(--font-inter), sans-serif !important;
+  z-index: 99999 !important; /* Garante que fique acima de modais */
+  margin-top: 4px !important;
+  padding: 6px 0 !important;
+}
+
+.dark .pac-container,
+.dark.pac-container {
+  background-color: #18181b !important; /* zinc-900 */
+  color: #f4f4f5 !important; /* zinc-100 */
+  border-color: #27272a !important; /* zinc-800 */
+}
+
+.pac-item {
+  border-top: 1px solid #f3f4f6 !important;
+  padding: 10px 14px !important;
+  cursor: pointer !important;
+  color: #4b5563 !important; /* zinc-600 */
+  display: flex !important;
+  align-items: center !important;
+  font-size: 13px !important;
+  transition: all 0.15s ease !important;
+}
+
+.dark .pac-item {
+  border-top-color: #27272a !important;
+  color: #a1a1aa !important; /* zinc-400 */
+}
+
+.pac-item:first-of-type {
+  border-top: none !important;
+}
+
+.pac-item:hover, .pac-item-selected, .pac-item:active {
+  background-color: #f3f4f6 !important;
+}
+
+.dark .pac-item:hover, .dark .pac-item-selected {
+  background-color: #27272a !important;
+}
+
+.pac-item-query {
+  color: #111827 !important; /* zinc-900 */
+  font-size: 13px !important;
+  padding-right: 4px !important;
+}
+
+.dark .pac-item-query {
+  color: #fafafa !important; /* zinc-50 */
+}
+
+.pac-matched {
+  color: #a855f7 !important; /* purple-500 */
+  font-weight: 600 !important;
+}
+
+/* Oculta logo do Google para ficar mais limpo */
+.pac-logo:after {
+  display: none !important;
+}
