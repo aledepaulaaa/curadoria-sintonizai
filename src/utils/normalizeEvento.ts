@@ -64,6 +64,23 @@ export function normalizeEvento(raw: EventoRaw): Evento | null {
 
   const tipoEvento = cleanText(normalized.tipo_evento || '');
   const gratuitoStr = (normalized.Gratuito || normalized.gratuito || '').toLowerCase();
+  const estilo = cleanText(normalized.estilo || '');
+  const categoria = mapCategoria(tipoEvento);
+
+  const rawTipos = (raw as any).tiposEvento;
+  const tiposEvento = Array.isArray(rawTipos)
+    ? rawTipos.map((t: any) => cleanText(t))
+    : (tipoEvento ? tipoEvento.split(',').map(t => cleanText(t)) : []);
+
+  const rawVibes = (raw as any).vibracoes;
+  const vibracoes = Array.isArray(rawVibes)
+    ? rawVibes.map((v: any) => cleanText(v))
+    : (estilo ? estilo.split(',').map(v => cleanText(v)) : []);
+
+  const rawCats = (raw as any).categorias;
+  const categorias = Array.isArray(rawCats)
+    ? rawCats.map((c: any) => cleanText(c))
+    : (categoria ? [categoria] : []);
 
   return {
     nome,
@@ -76,7 +93,7 @@ export function normalizeEvento(raw: EventoRaw): Evento | null {
       lng: -46.6333,
     },
     cidade: 'São Paulo',
-    categoria: mapCategoria(tipoEvento),
+    categoria,
     vibe: 'cultural',
     bombando: false,
     aoVivo: false,
@@ -87,7 +104,10 @@ export function normalizeEvento(raw: EventoRaw): Evento | null {
     linkIngresso: cleanText(normalized.linkIngresso || ''),
     fonte: 'curadoria_painel',
     tipo_evento: tipoEvento || 'Outros',
-    estilo: cleanText(normalized.estilo || ''),
+    estilo,
+    tiposEvento,
+    vibracoes,
+    categorias,
   };
 }
 

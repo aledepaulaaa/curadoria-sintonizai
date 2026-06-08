@@ -33,6 +33,9 @@ export default function ManualCuradoria() {
     categoria: '',
     estilo: '',
     tipo_evento: '',
+    categorias: [] as string[],
+    tiposEvento: [] as string[],
+    vibracoes: [] as string[],
     gratuito: false,
     preco: '',
     linkIngresso: '',
@@ -67,24 +70,58 @@ export default function ManualCuradoria() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleToggleCategoria = (cat: string) => {
+    const current = form.categorias || [];
+    const next = current.includes(cat) ? current.filter(c => c !== cat) : [...current, cat];
+    setForm(prev => {
+      const nextTypes = next.length === 0 ? [] : prev.tiposEvento;
+      const nextVibs = next.length === 0 ? [] : prev.vibracoes;
+      return {
+        ...prev,
+        categorias: next,
+        categoria: next[0] || '',
+        tiposEvento: nextTypes,
+        tipo_evento: nextTypes[0] || '',
+        vibracoes: nextVibs,
+        estilo: nextVibs.join(', ')
+      };
+    });
+  };
+
+  const handleToggleTipoEvento = (tipo: string) => {
+    const current = form.tiposEvento || [];
+    const next = current.includes(tipo) ? current.filter(t => t !== tipo) : [...current, tipo];
+    setForm(prev => {
+      const nextVibs = next.length === 0 ? [] : prev.vibracoes;
+      return {
+        ...prev,
+        tiposEvento: next,
+        tipo_evento: next[0] || '',
+        vibracoes: nextVibs,
+        estilo: nextVibs.join(', ')
+      };
+    });
+  };
+
   const estilosSelecionados = React.useMemo(() => {
-    return form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-  }, [form.estilo]);
+    return form.vibracoes || [];
+  }, [form.vibracoes]);
 
   const handleToggleEstilo = (estiloNome: string) => {
-    const current = form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-    let next: string[];
-    if (current.includes(estiloNome)) {
-      next = current.filter((s: string) => s !== estiloNome);
-    } else {
-      next = [...current, estiloNome];
-    }
-    handleChange('estilo', next.join(', '));
+    const current = form.vibracoes || [];
+    const next = current.includes(estiloNome)
+      ? current.filter((s: string) => s !== estiloNome)
+      : [...current, estiloNome];
+    setForm(prev => ({
+      ...prev,
+      vibracoes: next,
+      estilo: next.join(', ')
+    }));
   };
 
   const handleSalvar = async () => {
-    if (!form.nome || !form.dataInicio || !form.categoria) {
-      alert('Nome, Data e Categoria são obrigatórios!');
+    if (!form.nome || !form.dataInicio || form.categorias.length === 0) {
+      alert('Nome, Data e pelo menos uma Categoria são obrigatórios!');
       return;
     }
     setSalvando(true);
@@ -111,6 +148,9 @@ export default function ManualCuradoria() {
         categoria: '',
         estilo: '',
         tipo_evento: '',
+        categorias: [],
+        tiposEvento: [],
+        vibracoes: [],
         gratuito: false,
         preco: '',
         linkIngresso: '',
@@ -168,102 +208,133 @@ export default function ManualCuradoria() {
                 <input value={form.localNome} onChange={e => handleChange('localNome', e.target.value)} className={inputCls} placeholder="Ex: Bar do Alemão" />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Categoria</label>
-                  <select 
-                    value={form.categoria} 
-                    onChange={e => {
-                      const val = e.target.value;
-                      setForm(prev => ({ ...prev, categoria: val, tipo_evento: '', estilo: '' }));
-                    }} 
-                    className={inputCls}
-                  >
-                    <option value="">Selecione a Categoria</option>
-                    {categoriasAchatadas.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Tipo de Evento</label>
-                  <select 
-                    value={form.tipo_evento} 
-                    disabled={!form.categoria}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setForm(prev => ({ ...prev, tipo_evento: val, estilo: '' }));
-                    }} 
-                    className={inputCls}
-                  >
-                    <option value="">{form.categoria ? 'Selecione o Tipo' : 'Escolha Categoria primeiro'}</option>
-                    {(() => {
-                      // Tenta filtrar pelo label da categoria
-                      const filtrados = tiposEvento
-                        .filter((g: any) => 
-                          g.label?.trim().toLowerCase() === form.categoria.trim().toLowerCase() ||
-                          g.id?.trim().toLowerCase() === form.categoria.trim().toLowerCase()
-                        )
-                        .flatMap((g: any) => g.itens || []);
-
-                      // Se não achar nada específico para essa categoria, mostra TODOS os tipos como fallback
-                      const listaFinal = filtrados.length > 0 
-                        ? filtrados 
-                        : Array.from(new Set(tiposEvento.flatMap((g: any) => g.itens || [])));
-
-                      return listaFinal.sort().map((tipo: string) => (
-                        <option key={tipo} value={tipo}>{tipo}</option>
-                      ));
-                    })()}
-                  </select>
-                  {!tiposEvento.some(g => g.label?.trim().toLowerCase() === form.categoria.trim().toLowerCase()) && form.categoria && (
-                    <p className="text-[9px] text-amber-500 mt-1 font-bold animate-pulse">⚠️ Usando lista genérica (sem grupo específico)</p>
-                  )}
-                </div>
-              </div>
-
               <div>
-                <label className={labelCls}>Estilos Musicais (Múltiplos)</label>
-                <div className={`p-4 rounded-2xl border bg-zinc-50/50 dark:bg-zinc-800/20 max-h-48 overflow-y-auto ${
-                  !form.tipo_evento 
-                    ? 'border-zinc-200 dark:border-zinc-800 opacity-60' 
-                    : 'border-zinc-200 dark:border-zinc-700 shadow-inner'
-                }`}>
-                  {!form.tipo_evento ? (
-                    <span className="text-xs text-zinc-500 italic">Selecione o Tipo de Evento primeiro para habilitar</span>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {(() => {
-                        // Tenta filtrar pelo label do tipo
-                        const filtrados = estilos
-                          .filter((g: any) => 
-                            g.label?.trim().toLowerCase() === form.tipo_evento.trim().toLowerCase() ||
-                            g.id?.trim().toLowerCase() === form.tipo_evento.trim().toLowerCase()
-                          )
-                          .flatMap((g: any) => g.itens || []);
-
-                        // Fallback para todos os estilos se não achar grupo específico
-                        const listaFinal = filtrados.length > 0 
-                          ? filtrados 
-                          : Array.from(new Set(estilos.flatMap((g: any) => g.itens || [])));
-
-                        return listaFinal.sort().map((estilo: string) => {
-                          const ativo = estilosSelecionados.includes(estilo);
+                <label className={labelCls}>Categorias (Múltiplos)</label>
+                <div className="p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/20 max-h-48 overflow-y-auto space-y-3 shadow-inner">
+                  {categorias.map((grupo: any) => (
+                    <div key={grupo.id} className="space-y-1.5">
+                      <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">{grupo.label}</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {grupo.itens?.map((item: string) => {
+                          const ativo = (form.categorias || []).includes(item);
                           return (
                             <button
-                              key={estilo}
+                              key={item}
                               type="button"
-                              onClick={() => handleToggleEstilo(estilo)}
+                              onClick={() => handleToggleCategoria(item)}
                               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all border ${
                                 ativo 
                                   ? 'bg-purple-600 border-purple-600 text-white shadow-sm' 
                                   : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
                               }`}
                             >
-                              {estilo}
+                              {item}
                             </button>
                           );
-                        });
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                  {categorias.length === 0 && (
+                    <span className="text-xs text-zinc-500 italic">Nenhuma categoria disponível</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className={labelCls}>Tipos de Evento (Múltiplos)</label>
+                <div className={`p-4 rounded-2xl border bg-zinc-50/50 dark:bg-zinc-800/20 max-h-48 overflow-y-auto ${
+                  form.categorias.length === 0 
+                    ? 'border-zinc-200 dark:border-zinc-800 opacity-60' 
+                    : 'border-zinc-200 dark:border-zinc-700 shadow-inner'
+                }`}>
+                  {form.categorias.length === 0 ? (
+                    <span className="text-xs text-zinc-500 italic">Selecione pelo menos uma Categoria primeiro para habilitar</span>
+                  ) : (
+                    <div className="space-y-3">
+                      {(() => {
+                        const filtrados = tiposEvento.filter((g: any) => 
+                          form.categorias.some(cat => 
+                            g.label?.trim().toLowerCase() === cat.trim().toLowerCase() ||
+                            g.id?.trim().toLowerCase() === cat.trim().toLowerCase()
+                          )
+                        );
+                        const listaGrupos = filtrados.length > 0 ? filtrados : tiposEvento;
+
+                        return listaGrupos.map((grupo: any) => (
+                          <div key={grupo.id} className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">{grupo.label}</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {grupo.itens?.map((item: string) => {
+                                const ativo = (form.tiposEvento || []).includes(item);
+                                return (
+                                  <button
+                                    key={item}
+                                    type="button"
+                                    onClick={() => handleToggleTipoEvento(item)}
+                                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all border ${
+                                      ativo 
+                                        ? 'bg-purple-600 border-purple-600 text-white shadow-sm' 
+                                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                                    }`}
+                                  >
+                                    {item}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className={labelCls}>Estilos Musicais / Vibrações (Múltiplos)</label>
+                <div className={`p-4 rounded-2xl border bg-zinc-50/50 dark:bg-zinc-800/20 max-h-48 overflow-y-auto ${
+                  form.tiposEvento.length === 0 
+                    ? 'border-zinc-200 dark:border-zinc-800 opacity-60' 
+                    : 'border-zinc-200 dark:border-zinc-700 shadow-inner'
+                }`}>
+                  {form.tiposEvento.length === 0 ? (
+                    <span className="text-xs text-zinc-500 italic">Selecione pelo menos um Tipo de Evento primeiro para habilitar</span>
+                  ) : (
+                    <div className="space-y-3">
+                      {(() => {
+                        const filtrados = estilos.filter((g: any) => 
+                          form.tiposEvento.some(tipo => 
+                            g.label?.trim().toLowerCase() === tipo.trim().toLowerCase() ||
+                            g.id?.trim().toLowerCase() === tipo.trim().toLowerCase()
+                          )
+                        );
+                        const listaGrupos = filtrados.length > 0 ? filtrados : estilos;
+
+                        return listaGrupos.map((grupo: any) => (
+                          <div key={grupo.id} className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">{grupo.label}</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {grupo.itens?.map((item: string) => {
+                                const ativo = (form.vibracoes || []).includes(item);
+                                return (
+                                  <button
+                                    key={item}
+                                    type="button"
+                                    onClick={() => handleToggleEstilo(item)}
+                                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all border ${
+                                      ativo 
+                                        ? 'bg-purple-600 border-purple-600 text-white shadow-sm' 
+                                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                                    }`}
+                                  >
+                                    {item}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ));
                       })()}
                     </div>
                   )}
@@ -409,13 +480,17 @@ export default function ManualCuradoria() {
                     <MapPin size={16} className="text-purple-500" />
                     <span className="text-xs font-bold truncate">{form.localNome || 'Local não definido'}</span>
                   </div>
-                  <div className="flex items-center gap-2 pt-2">
-                    <span className="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-[9px] font-black text-zinc-400 uppercase tracking-widest border border-zinc-200 dark:border-zinc-700">
-                      {form.categoria}
-                    </span>
-                    <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest border border-blue-100 dark:border-blue-800/50">
-                      {form.tipo_evento}
-                    </span>
+                  <div className="flex flex-wrap gap-1.5 pt-2">
+                    {form.categorias?.map(cat => (
+                      <span key={cat} className="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-[9px] font-black text-zinc-400 uppercase tracking-widest border border-zinc-200 dark:border-zinc-700">
+                        {cat}
+                      </span>
+                    ))}
+                    {form.tiposEvento?.map(tipo => (
+                      <span key={tipo} className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest border border-blue-100 dark:border-blue-800/50">
+                        {tipo}
+                      </span>
+                    ))}
                     {form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean).map((style: string) => (
                       <span key={style} className="px-2 py-1 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-[9px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest border border-purple-100 dark:border-purple-800/50">
                         {style}

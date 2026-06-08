@@ -32,6 +32,9 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
     categoria: inicial?.categoria || '',
     estilo: inicial?.estilo || '',
     tipo_evento: inicial?.tipo_evento || '',
+    categorias: inicial?.categorias || (inicial?.categoria ? [inicial.categoria] : []),
+    tiposEvento: inicial?.tiposEvento || (inicial?.tipo_evento ? [inicial.tipo_evento] : []),
+    vibracoes: inicial?.vibracoes || (inicial?.estilo ? inicial.estilo.split(',').map(s => s.trim()).filter(Boolean) : []),
     gratuito: inicial?.gratuito || false,
     preco: inicial?.preco || '',
     linkIngresso: inicial?.linkIngresso || '',
@@ -58,12 +61,20 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
   // Inicializar campos se vazios quando os metadados carregarem
   React.useEffect(() => {
     if (!loadingCategorias && !loadingEstilos && !loadingTipos) {
-      setForm(prev => ({
-        ...prev,
-        categoria: prev.categoria || (categoriasAchatadas[0] || ''),
-        estilo: prev.estilo || (estilosAchatados[0] || ''),
-        tipo_evento: prev.tipo_evento || (tiposAchatados[0] || ''),
-      }));
+      setForm(prev => {
+        const defaultCat = categoriasAchatadas[0] || '';
+        const defaultTipo = tiposAchatados[0] || '';
+        const defaultEstilo = estilosAchatados[0] || '';
+        return {
+          ...prev,
+          categoria: prev.categoria || defaultCat,
+          estilo: prev.estilo || defaultEstilo,
+          tipo_evento: prev.tipo_evento || defaultTipo,
+          categorias: prev.categorias.length > 0 ? prev.categorias : (defaultCat ? [defaultCat] : []),
+          tiposEvento: prev.tiposEvento.length > 0 ? prev.tiposEvento : (defaultTipo ? [defaultTipo] : []),
+          vibracoes: prev.vibracoes.length > 0 ? prev.vibracoes : (defaultEstilo ? [defaultEstilo] : []),
+        };
+      });
     }
   }, [loadingCategorias, loadingEstilos, loadingTipos, categoriasAchatadas, estilosAchatados, tiposAchatados]);
 
@@ -72,6 +83,26 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
 
   const handleChange = (field: string, value: string | boolean | any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleToggleCategoria = (cat: string) => {
+    const current = form.categorias || [];
+    const next = current.includes(cat) ? current.filter(c => c !== cat) : [...current, cat];
+    setForm(prev => ({
+      ...prev,
+      categorias: next,
+      categoria: next[0] || ''
+    }));
+  };
+
+  const handleToggleTipoEvento = (tipo: string) => {
+    const current = form.tiposEvento || [];
+    const next = current.includes(tipo) ? current.filter(t => t !== tipo) : [...current, tipo];
+    setForm(prev => ({
+      ...prev,
+      tiposEvento: next,
+      tipo_evento: next[0] || ''
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,12 +121,15 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
           lng: form.lng ? Number(form.lng.replace(',', '.')) : 0 
         },
         endereco: form.endereco,
-        categoria: form.categoria,
+        categoria: form.categorias[0] || 'todos',
         bombando: inicial?.bombando || false,
         aoVivo: inicial?.aoVivo || false,
         likes: inicial?.likes || 0,
-        tipo_evento: form.tipo_evento,
-        estilo: form.estilo,
+        tipo_evento: form.tiposEvento[0] || 'Outros',
+        estilo: form.vibracoes.join(', '),
+        categorias: form.categorias,
+        tiposEvento: form.tiposEvento,
+        vibracoes: form.vibracoes,
         gratuito: form.gratuito,
         preco: form.preco,
         linkIngresso: form.linkIngresso,
@@ -109,6 +143,9 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
         setForm({ 
           nome: '', descricao: '', dataInicio: '', horario: '', localNome: '', endereco: '',
           categoria: categorias[0]?.label || '', estilo: estilos[0]?.label || '', tipo_evento: tiposAchatados[0] || '', 
+          categorias: categorias[0]?.label ? [categorias[0].label] : [],
+          tiposEvento: tiposAchatados[0] ? [tiposAchatados[0]] : [],
+          vibracoes: estilos[0]?.label ? [estilos[0].label] : [],
           gratuito: false, preco: '', linkIngresso: '', imagemUrl: '', indicadoPor: null, notaCuradoria: '', 
           acessibilidade: false, lat: '', lng: '' 
         });
@@ -119,22 +156,19 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
   };
 
   const estilosSelecionados = React.useMemo(() => {
-    return form.estilo 
-      ? form.estilo.split(',').map((s: string) => s.trim().toLowerCase()).filter(Boolean) 
-      : [];
-  }, [form.estilo]);
+    return (form.vibracoes || []).map((s: string) => s.toLowerCase());
+  }, [form.vibracoes]);
 
   const handleToggleEstilo = (estiloNome: string) => {
-    const current = form.estilo ? form.estilo.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-    const lowerNome = estiloNome.toLowerCase();
-    const existe = current.some((s: string) => s.toLowerCase() === lowerNome);
-    let next: string[];
-    if (existe) {
-      next = current.filter((s: string) => s.toLowerCase() !== lowerNome);
-    } else {
-      next = [...current, estiloNome];
-    }
-    handleChange('estilo', next.join(', '));
+    const current = form.vibracoes || [];
+    const next = current.includes(estiloNome)
+      ? current.filter((s: string) => s !== estiloNome)
+      : [...current, estiloNome];
+    setForm(prev => ({
+      ...prev,
+      vibracoes: next,
+      estilo: next.join(', ')
+    }));
   };
 
   const inputCls = "w-full px-4 py-3 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-500 outline-none focus:ring-2 focus:ring-purple-500 shadow-sm transition-all";
@@ -164,30 +198,68 @@ export default function EventoForm({ onSubmit, inicial }: EventoFormProps) {
             <input value={form.localNome} onChange={(e) => handleChange('localNome', e.target.value)} className={inputCls} placeholder="Nome do local" />
           </div>
           <div>
-            <label className={labelCls}>Categoria</label>
-            <select value={form.categoria} onChange={(e) => handleChange('categoria', e.target.value)} className={inputCls}>
-              <option value="">Selecione uma categoria</option>
+            <label className={labelCls}>Categorias (Múltiplos)</label>
+            <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/20 max-h-40 overflow-y-auto space-y-3 shadow-inner">
               {categorias.map((grupo: any) => (
-                <optgroup key={grupo.id} label={grupo.label}>
-                  {grupo.itens?.map((item: string) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </optgroup>
+                <div key={grupo.id} className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">{grupo.label}</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {grupo.itens?.map((item: string) => {
+                      const ativo = (form.categorias || []).includes(item);
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => handleToggleCategoria(item)}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all border ${
+                            ativo 
+                              ? 'bg-purple-600 border-purple-600 text-white shadow-sm' 
+                              : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
-            </select>
+              {categorias.length === 0 && (
+                <span className="text-xs text-zinc-500 italic">Nenhuma categoria disponível</span>
+              )}
+            </div>
           </div>
           <div>
-            <label className={labelCls}>Tipo de Evento</label>
-            <select value={form.tipo_evento} onChange={(e) => handleChange('tipo_evento', e.target.value)} className={inputCls}>
-              <option value="">Selecione o tipo</option>
+            <label className={labelCls}>Tipos de Evento (Múltiplos)</label>
+            <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-800/20 max-h-40 overflow-y-auto space-y-3 shadow-inner">
               {tiposEvento.map((grupo: any) => (
-                <optgroup key={grupo.id} label={grupo.label}>
-                  {grupo.itens?.map((item: string) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </optgroup>
+                <div key={grupo.id} className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">{grupo.label}</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {grupo.itens?.map((item: string) => {
+                      const ativo = (form.tiposEvento || []).includes(item);
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => handleToggleTipoEvento(item)}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all border ${
+                            ativo 
+                              ? 'bg-purple-600 border-purple-600 text-white shadow-sm' 
+                              : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
-            </select>
+              {tiposEvento.length === 0 && (
+                <span className="text-xs text-zinc-500 italic">Nenhum tipo de evento disponível</span>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

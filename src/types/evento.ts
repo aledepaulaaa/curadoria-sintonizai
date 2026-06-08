@@ -29,6 +29,9 @@ export interface Evento {
   fonte?: string;
   tipo_evento?: string;
   estilo?: string;
+  tiposEvento?: string[];
+  vibracoes?: string[];
+  categorias?: string[];
   tags?: string[];
   nota?: number;
   shares?: number;

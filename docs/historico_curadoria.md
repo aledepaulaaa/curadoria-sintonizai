@@ -1,5 +1,17 @@
 # Histórico de Desenvolvimento — Curadoria Sintonizaí
 
+## [4.5] — 2026-06-07 — Transição de Taxonomia e Formulários Multivalorados
+### ✨ Funcionalidades
+- **Upgrade de Formulários (`EventoForm.tsx`, `ManualCuradoria.tsx`)**: Substituição dos dropdowns select convencionais por listas visuais com botões de múltipla escolha para categorias e tipos de eventos, sincronizados com o modelo multivalorado de arrays de strings.
+- **Filtros e Dependências Inteligentes (Cascading)**: O seletor de tipos de eventos filtra dinamicamente as opções com base nas categorias selecionadas pelo curador. O seletor de estilos/vibrações filtra as opções com base nos tipos de eventos selecionados.
+- **Mapeamento de Preview do App**: O simulador móvel de cards foi adaptado para renderizar dinamicamente múltiplos chips de categorias, tipos e estilos/vibrações.
+
+## [4.4] — 2026-05-19 — Edição em Massa Ampliada (Categorias)
+### ✨ Funcionalidades
+- **Edição de Categorias em Lote**: Adicionada a capacidade de atualizar a categoria de múltiplos eventos simultaneamente no `BulkEditModal`.
+- **Dropdown Hierárquico**: Renderização premium das categorias agrupadas por grupo de interesse (`optgroups`) integrado ao hook `useCategorias`.
+- **Validação de Atualização**: O processo garante flexibilidade permitindo manter a categoria atual ao atualizar outros metadados, ou atualizar apenas a categoria.
+
 ## [4.3] — 2026-05-18 — Métricas de Grades Compartilhadas
 ### ✨ Funcionalidades
 - **Mapeamento de Importações**: Integração de acompanhamento na coleção `programacoes_compartilhadas` para coletar dados de viralidade.

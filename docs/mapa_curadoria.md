@@ -1,6 +1,8 @@
-# Mapa Curadoria Sintonizaí - v4.3
+# Mapa Curadoria Sintonizaí - v4.5
 
 ## 🧠 Inteligência & Ingestão
+- **Upgrade de Formulários Multivalorados (v4.5)**: Atualização completa do `EventoForm.tsx` e `ManualCuradoria.tsx` para substituir os dropdowns simples por coletores visuais baseados em botões de múltipla escolha para Categorias (`categorias`), Tipos (`tiposEvento`) e Estilos/Vibrações (`vibracoes`). Oferece filtragem em cascata baseada nos tópicos selecionados.
+- **Edição em Massa de Categorias (v4.4)**: Adicionado suporte à edição em massa do campo de **Categorias** dos eventos selecionados no `BulkEditModal`. O seletor consome as categorias dinâmicas do banco via `useCategorias` e renderiza um dropdown agrupado por `optgroup` idêntico ao de edição individual.
 - **Shared Schedules Metric Insights (v4.3)**: Acompanhamento de engajamento social através da coleção `programacoes_compartilhadas`. Captura do total de importações em lote (`totalImportacoes`), permitindo à equipe de curadoria mensurar o alcance viral e a popularidade de grades de eventos compartilhadas por usuários.
 - **Image Editor (v1.0)**: Motor de corte (`react-easy-crop`) integrado ao upload. Força proporção 16:9 para eventos e 1:1 para perfis, garantindo integridade visual no App.
 - **Gemini Chat (v3.1)**: Suporte a **formatos flexíveis** (JSONs soltos sem array). IA agora gerencia duplicidade via ferramenta, eliminando buscas redundantes.
