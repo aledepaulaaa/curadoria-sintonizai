@@ -8,7 +8,7 @@ import { useInsights } from '@/src/hooks/useInsights';
 import { motion } from 'framer-motion';
 
 export default function DashboardPage() {
-  const { kpis, categorias, gratuitos, topShared, pushStats, carregando, erro, carregar } = useInsights();
+  const { kpis, categorias, gratuitos, topShared, pushStats, topBuscas, totalBuscas, carregando, erro, carregar } = useInsights();
 
   // Injetar KPI de Push se disponível
   const allKpis = [...kpis];
@@ -95,6 +95,35 @@ export default function DashboardPage() {
                   ))
                 ) : (
                   <div className="py-10 text-center text-zinc-500 text-sm italic">Nenhum compartilhamento registrado ainda.</div>
+                )}
+              </div>
+            </div>
+
+            {/* Top Searched Terms */}
+            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-black text-zinc-900 dark:text-white uppercase tracking-tighter">Top 10 Termos de Busca</h3>
+                <div className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full text-[10px] font-bold uppercase">Marketing</div>
+              </div>
+
+              <div className="space-y-3">
+                {topBuscas && topBuscas.length > 0 ? (
+                  topBuscas.map((item, i) => (
+                    <div key={item.termo} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800 group hover:border-purple-200 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 flex items-center justify-center bg-zinc-200 dark:bg-zinc-700 rounded-lg text-[10px] font-bold text-zinc-600 dark:text-zinc-400">
+                          {i + 1}
+                        </span>
+                        <span className="text-sm font-bold text-zinc-900 dark:text-white line-clamp-1">{item.termo}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-purple-600">
+                        <span className="text-sm font-black">{item.total}</span>
+                        <span className="text-[10px] font-bold uppercase opacity-60">buscas</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-10 text-center text-zinc-500 text-sm italic">Nenhuma busca registrada ainda.</div>
                 )}
               </div>
             </div>

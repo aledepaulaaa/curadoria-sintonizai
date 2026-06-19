@@ -13,14 +13,17 @@ export async function buscarInsights(): Promise<ActionResponse<{
     totalClicks: number;
     byPlatform: ChartData[];
     byDay: ChartData[];
-  }
+  };
+  totalBuscas: number;
+  topBuscas: { termo: string, total: number }[];
 }>> {
   try {
-    const [eventosSnap, usersSnap, sharesSnap, pushSnap] = await Promise.all([
+    const [eventosSnap, usersSnap, sharesSnap, pushSnap, buscasSnap] = await Promise.all([
       adminDb.collection('eventos').get(),
       adminDb.collection('usuarios').get(),
       adminDb.collection('metricas_compartilhamento').orderBy('total', 'desc').limit(10).get(),
-      adminDb.collection('metricas_push').get()
+      adminDb.collection('metricas_push').get(),
+      adminDb.collection('historico_buscas').get()
     ]);
 
     const eventos = eventosSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -59,6 +62,25 @@ export async function buscarInsights(): Promise<ActionResponse<{
     });
     const mediaIdade = totalComIdade > 0 ? Math.round(somaIdades / totalComIdade) : 0;
 
+    // Processar Histórico de Buscas
+    const totalBuscas = buscasSnap.size;
+    const buscasMap: Record<string, number> = {};
+    buscasSnap.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.termo) {
+        const termoNorm = data.termo.trim().toLowerCase();
+        buscasMap[termoNorm] = (buscasMap[termoNorm] || 0) + 1;
+      }
+    });
+
+    const topBuscas = Object.entries(buscasMap)
+      .map(([termo, total]) => {
+        const termoFormatado = termo.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        return { termo: termoFormatado, total };
+      })
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+
     if (eventos.length === 0) {
       return createSuccessResponse({
         kpis: [
@@ -67,6 +89,7 @@ export async function buscarInsights(): Promise<ActionResponse<{
           { label: 'Usuários', valor: usersSnap.size, icone: 'Users' },
           { label: 'Shares', valor: totalShares, icone: 'Share2' },
           { label: 'Idade Média', valor: mediaIdade, icone: 'Calendar' },
+          { label: 'Total Buscas', valor: totalBuscas, icone: 'Search' },
         ],
         categorias: [],
         gratuitos: [],
@@ -75,7 +98,9 @@ export async function buscarInsights(): Promise<ActionResponse<{
           totalClicks: 0,
           byPlatform: [],
           byDay: []
-        }
+        },
+        totalBuscas,
+        topBuscas
       });
     }
 
@@ -89,6 +114,7 @@ export async function buscarInsights(): Promise<ActionResponse<{
       { label: 'Usuários', valor: usersSnap.size, icone: 'Users' },
       { label: 'Shares', valor: totalShares, icone: 'Share2' },
       { label: 'Idade Média', valor: mediaIdade, icone: 'Calendar' },
+      { label: 'Total Buscas', valor: totalBuscas, icone: 'Search' },
     ];
 
     // Distribuição por categoria (Nova Taxonomia: Categoria > Tipo > Estilo)
@@ -144,7 +170,7 @@ export async function buscarInsights(): Promise<ActionResponse<{
       ]
     };
 
-    return createSuccessResponse({ kpis, categorias, gratuitos, topShared, pushStats });
+    return createSuccessResponse({ kpis, categorias, gratuitos, topShared, pushStats, totalBuscas, topBuscas });
   } catch (error) {
     return handleActionError(error, 'buscarInsights');
   }
