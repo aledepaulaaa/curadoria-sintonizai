@@ -54,18 +54,21 @@ const tools = [
                   descricao: { type: 'string' },
                   dataInicio: { type: 'string', description: 'Formato YYYY-MM-DD' },
                   horario: { type: 'string' },
-                  local: { type: 'object', properties: { nome: { type: 'string' } } },
+                  local: { type: 'object', properties: { nome: { type: 'string' }, lat: { type: 'number' }, lng: { type: 'number' } } },
                   endereco: { type: 'string' },
-                  tipo_evento: { type: 'string' },
-                  categoria: { type: 'string' },
-                  estilo: { type: 'string' },
+                  tipo_evento: { type: 'string', description: 'Tipo principal (legado)' },
+                  categoria: { type: 'string', description: 'Categoria principal (legado)' },
+                  estilo: { type: 'string', description: 'Estilo/vibe principal (legado)' },
+                  categorias: { type: 'array', items: { type: 'string' }, description: 'Lista de categorias do evento (múltiplas permitidas)' },
+                  tiposEvento: { type: 'array', items: { type: 'string' }, description: 'Lista de tipos do evento (múltiplos permitidos)' },
+                  vibracoes: { type: 'array', items: { type: 'string' }, description: 'Lista de estilos/vibrações do evento (múltiplos permitidos)' },
                   gratuito: { type: 'boolean' },
                   preco: { type: 'string' },
                   linkIngresso: { type: 'string' },
                   notaCuradoria: { type: 'string', description: 'Nota ou aviso importante da curadoria para o público (máx 100 caracteres)' },
                   acessibilidade: { type: 'boolean', description: 'Se o evento possui acessibilidade para pessoas com deficiência' }
                 },
-                required: ['nome', 'dataInicio', 'local', 'tipo_evento', 'categoria']
+                required: ['nome', 'dataInicio', 'local', 'categorias', 'tiposEvento']
               }
             }
           },
@@ -149,6 +152,9 @@ ESTRUTURA JSON ESPERADA (Exemplo):
   "dataInicio": "YYYY-MM-DD",
   "horario": "HH:MM",
   "local": { "nome": "Nome do Local", "lat": -23.55, "lng": -46.63 },
+  "categorias": ["Música"],
+  "tiposEvento": ["Show"],
+  "vibracoes": ["Rock"],
   "categoria": "Música",
   "tipo_evento": "Show",
   "estilo": "Rock",
@@ -270,15 +276,32 @@ FLUXO DE TRABALHO:
               const d = doc.data();
               const dataMatch = d.dataInicio?.split('T')[0] === diaNovo;
               const horarioMatch = d.horario === ev.horario;
-              const categoriaMatch = d.categoria === ev.categoria;
-              const tipoMatch = d.tipo_evento === ev.tipo_evento;
-              const estiloMatch = d.estilo === ev.estilo;
-              return dataMatch && horarioMatch && categoriaMatch && tipoMatch && estiloMatch;
+
+              // Comparar usando campos novos ou antigos para resiliência de duplicidade
+              const dCat = d.categoria || (d.categorias && d.categorias[0]) || '';
+              const evCat = ev.categoria || (ev.categorias && ev.categorias[0]) || '';
+              const categoriaMatch = dCat === evCat;
+
+              const dTipo = d.tipo_evento || (d.tiposEvento && d.tiposEvento[0]) || '';
+              const evTipo = ev.tipo_evento || (ev.tiposEvento && ev.tiposEvento[0]) || '';
+              const tipoMatch = dTipo === evTipo;
+
+              return dataMatch && horarioMatch && categoriaMatch && tipoMatch;
             });
 
             if (!jaExiste) {
+              const categoriasArray = Array.isArray(ev.categorias) ? ev.categorias : (ev.categoria ? [ev.categoria] : []);
+              const tiposArray = Array.isArray(ev.tiposEvento) ? ev.tiposEvento : (ev.tipo_evento ? [ev.tipo_evento] : []);
+              const vibracoesArray = Array.isArray(ev.vibracoes) ? ev.vibracoes : (ev.estilo ? ev.estilo.split(',').map((s: any) => s.trim()).filter(Boolean) : []);
+
               await colRef.add({
                 ...ev,
+                categoria: categoriasArray[0] || 'todos',
+                tipo_evento: tiposArray[0] || 'Outros',
+                estilo: vibracoesArray.join(', '),
+                categorias: categoriasArray,
+                tiposEvento: tiposArray,
+                vibracoes: vibracoesArray,
                 status: 'pendente',
                 criadoEm: new Date().toISOString(),
                 origem: 'IA_ASSISTANT'
