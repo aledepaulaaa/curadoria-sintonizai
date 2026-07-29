@@ -42,6 +42,7 @@ export interface Evento {
   };
   notaCuradoria?: string;
   acessibilidade?: boolean;
+  status?: 'aprovado' | 'pendente' | 'rejeitado';
 }
 
 export interface EventoRaw {

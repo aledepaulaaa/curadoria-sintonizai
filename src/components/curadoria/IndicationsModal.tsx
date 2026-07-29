@@ -1,8 +1,6 @@
 'use client';
-
-import React from 'react';
-import { useNotificationStore, Indicacao, Feedback } from '@/src/store/useNotificationStore';
-import { X, ExternalLink, Calendar, User, MessageSquare, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { useNotificationStore } from '@/src/store/useNotificationStore';
+import { X, ExternalLink, Calendar, MessageSquare, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { db } from '@/src/services/firebaseClient';
 import { doc, updateDoc } from 'firebase/firestore';
 
@@ -12,7 +10,7 @@ interface IndicationsModalProps {
 }
 
 export default function IndicationsModal({ isOpen, onClose }: IndicationsModalProps) {
-  const { indicacoes, feedbacks, loading, marcarTodasComoLidas } = useNotificationStore();
+  const { indicacoes, feedbacks, eventosPendentes, loading, marcarTodasComoLidas } = useNotificationStore();
 
   if (!isOpen) return null;
 
@@ -29,7 +27,7 @@ export default function IndicationsModal({ isOpen, onClose }: IndicationsModalPr
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const totalNotificacoes = indicacoes.length + feedbacks.length;
+  const totalNotificacoes = indicacoes.length + feedbacks.length + (eventosPendentes?.length || 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -42,7 +40,7 @@ export default function IndicationsModal({ isOpen, onClose }: IndicationsModalPr
             </div>
             <div>
               <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Notificações da Comunidade</h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Reports e Indicações pendentes</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Acompanhamento e curadoria de eventos</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -73,10 +71,37 @@ export default function IndicationsModal({ isOpen, onClose }: IndicationsModalPr
                 <Calendar size={32} />
               </div>
               <h4 className="text-zinc-900 dark:text-white font-medium">Nenhuma notificação nova</h4>
-              <p className="text-sm text-zinc-500 max-w-[280px] mt-1">Quando os usuários reportarem erros ou sugerirem eventos, eles aparecerão aqui.</p>
+              <p className="text-sm text-zinc-500 max-w-[280px] mt-1">Quando houver novos reports ou coletas concluídas pelo Agent, eles aparecerão aqui.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Seção de Coletas do Agent Pendentes de Revisão */}
+              {eventosPendentes && eventosPendentes.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-[0.2em] mb-2 px-1">Coletas do Agent para Revisar ({eventosPendentes.length})</h4>
+                  {eventosPendentes.map((ev) => (
+                    <div key={ev.id} className="p-4 bg-purple-50/20 dark:bg-purple-950/10 border border-purple-200/50 dark:border-purple-900/30 rounded-xl hover:border-purple-400 transition-all group">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 size={14} className="text-purple-500" />
+                          <h5 className="text-sm font-bold text-zinc-900 dark:text-white">{ev.nome}</h5>
+                        </div>
+                        <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-full uppercase">
+                          {ev.categoria}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-2 line-clamp-2 italic">"{ev.descricao}"</p>
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-purple-200/20 dark:border-purple-900/20">
+                        <span className="text-[10px] text-zinc-400">
+                          Data: {isNaN(new Date(ev.dataInicio).getTime()) ? 'Data a confirmar' : new Date(ev.dataInicio).toLocaleDateString('pt-BR')}{ev.horario && ev.horario !== 'N/A' ? ` às ${ev.horario}` : ''}
+                        </span>
+                        <a href="/curadoria" onClick={onClose} className="text-[10px] font-black text-purple-600 hover:text-purple-700 uppercase tracking-tighter">Revisar no Chat</a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Seção de Reports */}
               {feedbacks.length > 0 && (
                 <div className="space-y-3">
@@ -104,7 +129,7 @@ export default function IndicationsModal({ isOpen, onClose }: IndicationsModalPr
 
               {/* Seção de Indicações */}
               {indicacoes.length > 0 && (
-                <div className="space-y-3 pt-4">
+                <div className="space-y-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                   <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-2 px-1">Indicações ({indicacoes.length})</h4>
                   {indicacoes.map((ind) => (
                     <div key={ind.id} className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-700/50 rounded-xl hover:border-purple-400 transition-all group">

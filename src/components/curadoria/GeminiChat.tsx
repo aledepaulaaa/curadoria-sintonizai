@@ -11,12 +11,24 @@ import {
   type ConversaIA 
 } from '@/src/actions/ia/conversasActions';
 import { 
+  atualizarEvento, 
+  deletarEvento,
+  aprovarTodosEventosPendentes 
+} from '@/src/actions/eventos/eventosActions';
+import { useNotificationStore } from '@/src/store/useNotificationStore';
+import { 
   Send, Loader2, Bot, User, Sparkles, AlertCircle, 
   Plus, History, Edit3, Trash2, FileText, Paperclip, X,
-  Check, ArrowRight, Zap, Copy, Maximize2, Minimize2
+  Check, ArrowRight, Zap, Copy, Maximize2, Minimize2, CheckCircle2, AlertTriangle, Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
+import type { Evento } from '@/src/types/evento';
+import type { ResumoColetaDados } from '@/src/types/resumoColeta';
+import MiniResumoCard from './MiniResumoCard';
+import MiniResumoModal from './MiniResumoModal';
+import ColetaStatusFooter from './ColetaStatusFooter';
+import ConfirmModal from './ConfirmModal';
 
 interface Message {
   role: 'user' | 'model';
@@ -35,6 +47,125 @@ export default function GeminiChat() {
   const [novoTitulo, setNovoTitulo] = React.useState('');
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  // Estados de Edição de Evento
+  const [eventoParaEditar, setEventoParaEditar] = React.useState<Evento | null>(null);
+  const [salvandoEdicao, setSalvandoEdicao] = React.useState(false);
+
+  // Notificações / Eventos Pendentes do Agent
+  const { eventosPendentes, carregarEventosPendentes } = useNotificationStore();
+
+  // Estado para Cronômetro da Coleta e Métricas do Mini-Resumo
+  const [coletaEmAndamento, setColetaEmAndamento] = React.useState<boolean>(false);
+  const [inicioColeta, setInicioColeta] = React.useState<Date | null>(null);
+  const [tempoDecorridoSegundos, setTempoDecorridoSegundos] = React.useState<number>(0);
+  const [tempoFinalFixado, setTempoFinalFixado] = React.useState<number>(0);
+  const [aprovandoLote, setAprovandoLote] = React.useState<boolean>(false);
+  const [resumoModalAberto, setResumoModalAberto] = React.useState<boolean>(false);
+  const [confirmAprovarTodosAberto, setConfirmAprovarTodosAberto] = React.useState<boolean>(false);
+
+  // Efeito de Cronômetro Ativo (Contador em HH:MM:SS)
+  React.useEffect(() => {
+    let interval: any;
+    if (coletaEmAndamento && inicioColeta) {
+      interval = setInterval(() => {
+        const diff = Math.floor((new Date().getTime() - inicioColeta.getTime()) / 1000);
+        setTempoDecorridoSegundos(diff);
+        if (diff > 0) setTempoFinalFixado(diff);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [coletaEmAndamento, inicioColeta]);
+
+  const formatarRelogio = (totalSegundos: number) => {
+    const hh = Math.floor(totalSegundos / 3600).toString().padStart(2, '0');
+    const mm = Math.floor((totalSegundos % 3600) / 60).toString().padStart(2, '0');
+    const ss = (totalSegundos % 60).toString().padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+  };
+
+  // Solicitar e Executar Aprovação em lote
+  const solicitarAprovarTodos = () => {
+    setConfirmAprovarTodosAberto(true);
+  };
+
+  const handleAprovarTodosConfirmado = async () => {
+    setAprovandoLote(true);
+    try {
+      const qtd = await aprovarTodosEventosPendentes();
+      await carregarEventosPendentes();
+      setColetaEmAndamento(false);
+      setResumoModalAberto(false);
+
+      // Registra mensagem de relatório permanente no histórico da conversa
+      if (conversaAtiva && resumoColeta) {
+        const mensagemRelatorio: Message = {
+          role: 'model',
+          parts: [{
+            text: `✅ **Coleta e Curadoria Finalizadas com Sucesso!**\n\n` +
+                  `📊 **Relatório da Coleta Registrado no Histórico:**\n` +
+                  `• **Eventos Encontrados:** ${resumoColeta.totalEncontrados} evento(s)\n` +
+                  `• **Cidades - UF Buscadas:** ${resumoColeta.cidades}\n` +
+                  `• **Tipos de Eventos:** ${resumoColeta.tipos}\n` +
+                  `• **Fontes Consultadas:** ${resumoColeta.fontes}\n` +
+                  `• **Tempo Gasto:** ⏱️ ${resumoColeta.tempoGasto}\n` +
+                  `• **Data/Hora da Busca:** ${resumoColeta.dataHora}\n\n` +
+                  `🎉 **Status:** ${qtd} evento(s) revisado(s), aprovado(s) e publicado(s) com sucesso na base ativa do aplicativo! O Agent de Eventos permanece ativo em standby aguardando novas requisições.`
+          }]
+        };
+
+        const novasMsgs = [...(conversaAtiva.mensagens || []), mensagemRelatorio];
+        await atualizarConversaIA(conversaAtiva.id, { mensagens: novasMsgs });
+        setConversaAtiva({ ...conversaAtiva, mensagens: novasMsgs });
+      }
+    } catch (e: any) {
+      console.error('Erro ao aprovar todos os eventos:', e);
+    } finally {
+      setAprovandoLote(false);
+      setConfirmAprovarTodosAberto(false);
+    }
+  };
+
+  // Cálculos do Mini-Resumo da Coleta
+  const resumoColeta: ResumoColetaDados | null = React.useMemo(() => {
+    if (eventosPendentes.length === 0) return null;
+
+    const validos = eventosPendentes.filter(e => !e.nome.includes('0 Eventos'));
+    const totalEncontrados = validos.length;
+
+    const cidadesSet = new Set<string>();
+    eventosPendentes.forEach(e => {
+      if (e.cidade) cidadesSet.add(e.cidade);
+    });
+
+    const tiposSet = new Set<string>();
+    eventosPendentes.forEach(e => {
+      if (e.categoria && e.categoria !== 'todos') tiposSet.add(e.categoria);
+      if (e.tipo_evento && e.tipo_evento !== 'todos') tiposSet.add(e.tipo_evento);
+    });
+
+    let countInsta = 0;
+    let countSympla = 0;
+    eventosPendentes.forEach(e => {
+      const src = (e.fonte || e.linkIngresso || '').toLowerCase();
+      if (src.includes('instagram')) countInsta++;
+      else countSympla++;
+    });
+
+    const duracaoFinal = tempoDecorridoSegundos > 0 ? tempoDecorridoSegundos : (tempoFinalFixado || 42);
+    const tempoGastoTexto = duracaoFinal > 60 
+      ? `${Math.floor(duracaoFinal / 60)}m ${duracaoFinal % 60}s`
+      : `${duracaoFinal}s`;
+
+    return {
+      totalEncontrados,
+      cidades: Array.from(cidadesSet).join(' • ') || 'Brasil',
+      tipos: Array.from(tiposSet).join(', ') || 'Geral',
+      fontes: `Instagram (${countInsta}), Sympla (${countSympla})`,
+      dataHora: `${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+      tempoGasto: tempoGastoTexto,
+    };
+  }, [eventosPendentes, tempoDecorridoSegundos, tempoFinalFixado]);
 
   // Fechar sidebar automaticamente no mobile ao carregar
   React.useEffect(() => {
@@ -61,7 +192,7 @@ export default function GeminiChat() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [conversaAtiva?.mensagens]);
+  }, [conversaAtiva?.mensagens, eventosPendentes]);
 
   const handleNovaConversa = async () => {
     const res = await criarConversaIA();
@@ -172,12 +303,10 @@ export default function GeminiChat() {
     let novasMensagens: Message[] = [];
     
     if (isRegenerate) {
-      // Remove a última mensagem do modelo (se existir)
       novasMensagens = [...conversaAtiva.mensagens];
       if (novasMensagens.length > 0 && novasMensagens[novasMensagens.length - 1].role === 'model') {
         novasMensagens.pop();
       }
-      // A última mensagem agora é do usuário, que será reprocessada
     } else {
       const userMsg: Message = { role: 'user', parts: [{ text: textoEnvio }] };
       novasMensagens = [...conversaAtiva.mensagens, userMsg];
@@ -192,7 +321,6 @@ export default function GeminiChat() {
     setStatusIA('IA pensando...');
     setError(null);
 
-    // Setup abort controller
     abortControllerRef.current = new AbortController();
 
     try {
@@ -209,6 +337,11 @@ export default function GeminiChat() {
         
         await atualizarConversaIA(conversaAtiva.id, { mensagens: finalMsgs });
         setConversaAtiva({ ...conversaAtiva, mensagens: finalMsgs });
+
+        // Iniciar cronômetro da coleta em tempo real
+        setColetaEmAndamento(true);
+        setInicioColeta(new Date());
+        setTempoDecorridoSegundos(0);
 
         if (response.metadata?.propostaAjuste) {
           setPropostaAjuste(response.metadata.propostaAjuste);
@@ -239,7 +372,6 @@ export default function GeminiChat() {
     
     setInput(lastText);
     
-    // Removemos do estado local para que o usuário sinta que está "editando"
     const novasMensagens = conversaAtiva.mensagens.slice(0, realIndex);
     setConversaAtiva({ ...conversaAtiva, mensagens: novasMensagens });
   };
@@ -258,7 +390,6 @@ export default function GeminiChat() {
 
       if (res.success) {
         setPropostaAjuste(null);
-        // Adicionar mensagem de sucesso no chat
         const msgSucesso: Message = { role: 'model', parts: [{ text: `✅ Sucesso! Ajustei ${res.data?.count} eventos para "${propostaAjuste.novoValor}" no campo "${propostaAjuste.campo}".` }] };
         const finalMsgs = [...(conversaAtiva?.mensagens || []), msgSucesso];
         if (conversaAtiva) {
@@ -273,6 +404,65 @@ export default function GeminiChat() {
     } finally {
       setLoading(false);
       setStatusIA(null);
+    }
+  };
+
+  // Handlers para Ações nos Eventos Coletados (Revisão da Curação)
+  const handleAprovarEvento = async (id: string) => {
+    try {
+      await atualizarEvento(id, { status: 'aprovado' });
+      await carregarEventosPendentes();
+      
+      // Adicionar feedback no chat de que foi aprovado
+      if (conversaAtiva) {
+        const msg: Message = { role: 'model', parts: [{ text: `✅ Evento aprovado e adicionado à base ativa com sucesso!` }] };
+        const final = [...conversaAtiva.mensagens, msg];
+        await atualizarConversaIA(conversaAtiva.id, { mensagens: final });
+        setConversaAtiva({ ...conversaAtiva, mensagens: final });
+      }
+    } catch (err: any) {
+      setError('Erro ao aprovar evento: ' + err.message);
+    }
+  };
+
+  const handleExcluirEvento = async (id: string) => {
+    try {
+      await deletarEvento(id);
+      await carregarEventosPendentes();
+      
+      if (conversaAtiva) {
+        const msg: Message = { role: 'model', parts: [{ text: `❌ Evento rejeitado e excluído com sucesso.` }] };
+        const final = [...conversaAtiva.mensagens, msg];
+        await atualizarConversaIA(conversaAtiva.id, { mensagens: final });
+        setConversaAtiva({ ...conversaAtiva, mensagens: final });
+      }
+    } catch (err: any) {
+      setError('Erro ao excluir evento: ' + err.message);
+    }
+  };
+
+  const handleSalvarEdicaoEvento = async () => {
+    if (!eventoParaEditar || !eventoParaEditar.id) return;
+    setSalvandoEdicao(true);
+    try {
+      // Salva com status aprovado após edição
+      await atualizarEvento(eventoParaEditar.id, {
+        ...eventoParaEditar,
+        status: 'aprovado'
+      });
+      setEventoParaEditar(null);
+      await carregarEventosPendentes();
+
+      if (conversaAtiva) {
+        const msg: Message = { role: 'model', parts: [{ text: `✏️ Evento editado, validado e salvo com sucesso!` }] };
+        const final = [...conversaAtiva.mensagens, msg];
+        await atualizarConversaIA(conversaAtiva.id, { mensagens: final });
+        setConversaAtiva({ ...conversaAtiva, mensagens: final });
+      }
+    } catch (err: any) {
+      setError('Erro ao salvar edição: ' + err.message);
+    } finally {
+      setSalvandoEdicao(false);
     }
   };
 
@@ -382,17 +572,17 @@ export default function GeminiChat() {
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-xs md:text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wider truncate">
-                {conversaAtiva?.titulo || 'Gemini Curation'}
+                {conversaAtiva ? (conversaAtiva.titulo === 'Nova Conversa' || conversaAtiva.titulo === 'Gemini Curation' ? 'Assistente de curadoria' : conversaAtiva.titulo) : 'Assistente de curadoria'}
               </h3>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
                  <div className="flex items-center gap-1">
                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                   <span className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase whitespace-nowrap">IA Vision Ativa</span>
+                   <span className="text-[9px] md:text-[10px] font-bold text-zinc-500 uppercase whitespace-nowrap">Agent Activo</span>
                  </div>
                  {conversaAtiva?.chatId && (
                    <div className="flex items-center gap-1">
-                    <span className="text-[9px] text-zinc-300">|</span>
-                    <span className="text-[9px] md:text-[10px] font-mono text-zinc-400 truncate max-w-[120px]">ID: {conversaAtiva.chatId}</span>
+                     <span className="text-[9px] text-zinc-300">|</span>
+                     <span className="text-[9px] md:text-[10px] font-mono text-zinc-400 truncate max-w-[120px]">ID: {conversaAtiva.chatId}</span>
                    </div>
                  )}
               </div>
@@ -436,75 +626,198 @@ export default function GeminiChat() {
               <Bot size={48} className="text-zinc-300 dark:text-zinc-700" />
               <div className="max-w-xs">
                  <h4 className="text-sm font-bold text-zinc-400">Nenhuma conversa selecionada</h4>
-                 <p className="text-xs text-zinc-500 mt-1">Selecione uma conversa ao lado ou crie uma nova para começar a curadoria com IA.</p>
+                 <p className="text-xs text-zinc-500 mt-1">Selecione uma conversa ao lado ou crie uma nova para começar a curadoria com o Assistente.</p>
                  <button onClick={handleNovaConversa} className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-500/20">
                     Começar Agora
                  </button>
               </div>
             </div>
-          ) : conversaAtiva.mensagens.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-50">
-              <Sparkles size={48} className="text-zinc-300 dark:text-zinc-700" />
-              <div className="max-w-xs">
-                 <p className="text-sm font-bold text-zinc-400">Chat Iniciado!</p>
-                 <p className="text-xs text-zinc-500 mt-1">Envie uma mensagem ou anexe um print de evento.</p>
-              </div>
-            </div>
           ) : (
-            <AnimatePresence>
-              {conversaAtiva.mensagens.map((msg, i) => (
+            <>
+              {conversaAtiva.mensagens.length === 0 ? (
+                <div className="flex flex-col items-center justify-center text-center py-12 opacity-50 space-y-2">
+                  <Sparkles size={48} className="text-zinc-300 dark:text-zinc-700" />
+                  <p className="text-sm font-bold text-zinc-400">Assistente Prontificado!</p>
+                  <p className="text-xs text-zinc-500">Envie um link do Instagram/Sympla ou digite orientações.</p>
+                </div>
+              ) : (
+                <AnimatePresence>
+                  {conversaAtiva.mensagens.map((msg, i) => (
+                    <motion.div 
+                      key={i}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          msg.role === 'user' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' : 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                        }`}>
+                            {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <div className={`p-3 md:p-4 rounded-2xl text-[12px] md:text-sm whitespace-pre-wrap leading-relaxed transition-all duration-300 ${
+                            msg.role === 'user' 
+                              ? 'bg-zinc-900 dark:bg-white text-white dark:text-black font-medium rounded-tr-none' 
+                              : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-100 dark:border-zinc-700/50 shadow-sm'
+                          }`}>
+                            {msg.parts[0].text}
+                          </div>
+                          <div className={`flex gap-3 mt-1 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(msg.parts[0].text);
+                              }}
+                              className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1 transition-colors"
+                            >
+                              <Copy size={10} /> Copiar
+                            </button>
+                            
+                            {msg.role === 'user' && i === conversaAtiva.mensagens.length - 2 && !loading && (
+                              <>
+                                <button 
+                                  onClick={handleEditLastMessage}
+                                  className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1 transition-colors"
+                                >
+                                  <Edit3 size={10} /> Editar
+                                </button>
+                                <button 
+                                  onClick={() => handleSend(undefined, true)}
+                                  className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1 transition-colors"
+                                >
+                                  <History size={10} /> Refazer
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              )}
+
+              {/* Banner de Cronômetro ao Vivo durante a Busca dos Robôs */}
+              {coletaEmAndamento && (
                 <motion.div 
-                  key={i}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className="mt-4 p-4 bg-gradient-to-r from-purple-900/40 via-purple-950/60 to-zinc-900 border border-purple-500/40 rounded-2xl flex items-center justify-between flex-wrap gap-3 shadow-lg shadow-purple-950/20"
                 >
-                  <div className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      msg.role === 'user' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' : 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                    }`}>
-                        {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-purple-600/30 rounded-xl flex items-center justify-center text-purple-300 animate-pulse">
+                      <Clock size={20} />
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <div className={`p-3 md:p-4 rounded-2xl text-[12px] md:text-sm whitespace-pre-wrap leading-relaxed transition-all duration-300 ${
-                        msg.role === 'user' 
-                          ? 'bg-zinc-900 dark:bg-white text-white dark:text-black font-medium rounded-tr-none' 
-                          : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-none border border-zinc-100 dark:border-zinc-700/50 shadow-sm'
-                      }`}>
-                        {msg.parts[0].text}
-                      </div>
-                      <div className={`flex gap-3 mt-1 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <button 
-                          onClick={() => {
-                            navigator.clipboard.writeText(msg.parts[0].text);
-                          }}
-                          className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1 transition-colors"
-                        >
-                          <Copy size={10} /> Copiar
-                        </button>
-                        
-                        {msg.role === 'user' && i === conversaAtiva.mensagens.length - 2 && !loading && (
-                          <>
-                            <button 
-                              onClick={handleEditLastMessage}
-                              className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1 transition-colors"
-                            >
-                              <Edit3 size={10} /> Editar
-                            </button>
-                            <button 
-                              onClick={() => handleSend(undefined, true)}
-                              className="text-[10px] font-bold text-zinc-400 hover:text-purple-500 flex items-center gap-1 transition-colors"
-                            >
-                              <History size={10} /> Refazer
-                            </button>
-                          </>
-                        )}
-                      </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        Robôs do Agent em Execução <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      </h4>
+                      <p className="text-[11px] text-purple-200">Buscando e extraindo eventos no Sympla e Instagram...</p>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-xl border border-purple-500/30 font-mono text-sm font-black text-emerald-400">
+                    <span>⏱️</span>
+                    <span>{formatarRelogio(tempoDecorridoSegundos)}</span>
+                  </div>
                 </motion.div>
-              ))}
-            </AnimatePresence>
+              )}
+
+              {/* Painel Exclusivo de Revisão e Curação de Eventos Coletados pelo Agent em Background */}
+              {eventosPendentes.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-6 border-t border-purple-100 dark:border-purple-900/30 pt-6 space-y-4"
+                >
+                  {/* Card de Mini-Resumo da Coleta (Componente Modularizado) */}
+                  {resumoColeta && (
+                    <MiniResumoCard 
+                      resumo={resumoColeta} 
+                      onAprovarTodos={solicitarAprovarTodos} 
+                      aprovandoLote={aprovandoLote} 
+                    />
+                  )}
+
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-purple-500 animate-pulse" />
+                      <h4 className="text-xs font-black uppercase text-purple-600 dark:text-purple-400 tracking-wider">
+                        Coletas do Agent (Revisão Pendente: {eventosPendentes.length})
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-full">
+                      Formato de Leitura: Compartilhamento Humanizado
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {eventosPendentes.map((ev) => (
+                      <div 
+                        key={ev.id} 
+                        className="p-5 bg-gradient-to-br from-emerald-50/40 via-white to-zinc-50 dark:from-emerald-950/20 dark:via-zinc-900 dark:to-zinc-900 border border-emerald-500/20 dark:border-emerald-500/30 rounded-3xl shadow-sm hover:shadow-md transition-all space-y-3"
+                      >
+                        {/* WhatsApp Card Header */}
+                        <div className="flex items-center justify-between border-b border-emerald-500/10 dark:border-emerald-500/20 pb-2">
+                          <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                            <span className="text-base">💬</span>
+                            <span>Card de Evento Cultural</span>
+                          </div>
+                          <span className="text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full">
+                            📍 {ev.cidade || 'Brasil'}
+                          </span>
+                        </div>
+
+                        {/* WhatsApp Body Format */}
+                        <div className="bg-white dark:bg-zinc-800/80 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-700/50 space-y-2 text-xs font-sans text-zinc-800 dark:text-zinc-200">
+                          <h5 className="text-base font-black text-zinc-900 dark:text-white leading-tight">
+                            🎉 {ev.nome}
+                          </h5>
+                          
+                          {ev.descricao && (
+                            <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-xs italic">
+                              "{ev.descricao}"
+                            </p>
+                          )}
+
+                          <div className="pt-2 border-t border-zinc-100 dark:border-zinc-700/50 space-y-1 text-xs">
+                            <div>📅 <strong>Data:</strong> {isNaN(new Date(ev.dataInicio).getTime()) ? 'A confirmar' : new Date(ev.dataInicio).toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                            <div>⏰ <strong>Horário:</strong> {(!ev.horario || ev.horario === 'N/A') ? 'Confirmar no link' : ev.horario}</div>
+                            <div>📍 <strong>Local:</strong> {ev.local.nome} {ev.endereco ? `(${ev.endereco})` : ''}</div>
+                            <div>💸 <strong>Entrada:</strong> {ev.gratuito ? 'Gratuito' : (ev.preco || 'Sob consulta')}</div>
+                            <div>🏷️ <strong>Categoria:</strong> {ev.categoria} • {ev.tipo_evento || 'Geral'}</div>
+                            {ev.linkIngresso && (
+                              <div className="truncate">🔗 <strong>Ingressos / Info:</strong> <a href={ev.linkIngresso} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">{ev.linkIngresso}</a></div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-end gap-2 pt-1">
+                          <button
+                            onClick={() => setEventoParaEditar(ev)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 transition-all"
+                          >
+                            <Edit3 size={14} /> Editar
+                          </button>
+                          <button
+                            onClick={() => handleExcluirEvento(ev.id!)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 rounded-xl text-xs font-bold hover:bg-red-100 transition-all"
+                          >
+                            <Trash2 size={14} /> Excluir
+                          </button>
+                          <button
+                            onClick={() => handleAprovarEvento(ev.id!)}
+                            className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-500/20 transition-all"
+                          >
+                            <CheckCircle2 size={14} /> Aprovar & Salvar
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </>
           )}
 
           {loading && (
@@ -518,7 +831,6 @@ export default function GeminiChat() {
                      <Loader2 size={16} className="animate-spin" />
                   </div>
                   <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex flex-col gap-2 min-w-[200px] border border-zinc-100 dark:border-zinc-700/50 shadow-sm relative overflow-hidden">
-                     {/* Shimmer Effect */}
                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
                      
                      <div className="flex gap-1.5 items-center">
@@ -572,34 +884,23 @@ export default function GeminiChat() {
         {/* Input */}
         <div className="p-3 md:p-6 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800">
           <div className="flex flex-col gap-2 md:gap-3">
-            {/* Imagem Anexada Preview */}
-            <AnimatePresence>
-              {imagemAnexada && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="relative w-16 h-16 md:w-24 md:h-24 rounded-xl overflow-hidden border-2 border-purple-500 group"
+            {imagemAnexada && (
+              <div className="relative w-16 h-16 md:w-24 md:h-24 rounded-xl overflow-hidden border-2 border-purple-500">
+                <img src={imagemAnexada.preview} alt="Preview" className="w-full h-full object-cover" />
+                <button 
+                  onClick={() => setImagemAnexada(null)}
+                  className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full"
                 >
-                  <img src={imagemAnexada.preview} alt="Preview" className="w-full h-full object-cover" />
-                  <button 
-                    onClick={() => setImagemAnexada(null)}
-                    className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-100 transition-opacity"
-                  >
-                    <X size={10} />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <X size={10} />
+                </button>
+              </div>
+            )}
 
             <div className="flex gap-2 relative">
-              <div className="flex items-center gap-1 md:gap-2">
-                 <label className="p-2 md:p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors shadow-sm text-zinc-500">
-                    <Paperclip size={16} className="md:hidden" />
-                    <Paperclip size={18} className="hidden md:block" />
-                    <input type="file" accept=".json,.csv,.xlsx,.txt,image/*" onChange={handleFileUpload} className="hidden" />
-                 </label>
-              </div>
+              <label className="p-2 md:p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors shadow-sm text-zinc-500">
+                <Paperclip size={18} />
+                <input type="file" accept=".json,.csv,.xlsx,.txt,image/*" onChange={handleFileUpload} className="hidden" />
+              </label>
 
               <textarea
                 disabled={!conversaAtiva}
@@ -612,7 +913,7 @@ export default function GeminiChat() {
                   }
                 }}
                 rows={1}
-                placeholder={conversaAtiva ? "Pergunte ou anexe..." : "Selecione..."}
+                placeholder={conversaAtiva ? "Cole um link do Instagram/Sympla ou envie orientações de curadoria..." : "Selecione uma conversa..."}
                 className="flex-1 px-3 md:px-4 py-2 md:py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[13px] md:text-sm text-zinc-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-purple-500 shadow-sm resize-y min-h-[40px] md:min-h-[46px] max-h-[300px] md:max-h-[500px] overflow-y-auto font-mono"
               />
               <button 
@@ -620,8 +921,7 @@ export default function GeminiChat() {
                 disabled={loading || (!input.trim() && !imagemAnexada) || !conversaAtiva}
                 className="px-4 md:px-6 py-2 md:py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 disabled:opacity-50 transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center"
               >
-                <Send size={16} className="md:hidden" />
-                <Send size={18} className="hidden md:block" />
+                <Send size={18} />
               </button>
             </div>
           </div>
@@ -704,6 +1004,142 @@ export default function GeminiChat() {
                 >
                   {loading ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
                   Confirmar Ajustes
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal / Dialog de Edição Detalhada de Evento */}
+      <AnimatePresence>
+        {eventoParaEditar && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-purple-100 dark:bg-purple-900/30 rounded-xl text-purple-600 dark:text-purple-400">
+                    <Edit3 size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Revisão de Evento Coletado</h3>
+                    <p className="text-xs text-zinc-400">Edite as informações estruturadas da IA antes de salvar no banco relacional.</p>
+                  </div>
+                </div>
+                <button onClick={() => setEventoParaEditar(null)} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase">Nome do Evento</label>
+                    <input 
+                      type="text" 
+                      value={eventoParaEditar.nome}
+                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })}
+                      className="p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm" 
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase">Categoria</label>
+                    <select
+                      value={eventoParaEditar.categoria}
+                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, categoria: e.target.value })}
+                      className="p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm outline-none"
+                    >
+                      {['musica', 'teatro', 'danca', 'infantil', 'arte', 'rua', 'gastronomia', 'todos'].map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-bold text-zinc-400 uppercase">Descrição</label>
+                  <textarea 
+                    rows={4}
+                    value={eventoParaEditar.descricao}
+                    onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, descricao: e.target.value })}
+                    className="p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-sans" 
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase">Data de Início</label>
+                    <input 
+                      type="date" 
+                      value={eventoParaEditar.dataInicio.substring(0, 10)}
+                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, dataInicio: e.target.value })}
+                      className="p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm" 
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase">Horário</label>
+                    <input 
+                      type="text" 
+                      value={eventoParaEditar.horario}
+                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, horario: e.target.value })}
+                      className="p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm" 
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase">Preço</label>
+                    <input 
+                      type="text" 
+                      value={eventoParaEditar.preco || ''}
+                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, preco: e.target.value })}
+                      className="p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm" 
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase">Nome do Local</label>
+                    <input 
+                      type="text" 
+                      value={eventoParaEditar.local.nome}
+                      onChange={(e) => setEventoParaEditar({ 
+                        ...eventoParaEditar, 
+                        local: { ...eventoParaEditar.local, nome: e.target.value } 
+                      })}
+                      className="p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm" 
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase">Link de Ingresso</label>
+                    <input 
+                      type="text" 
+                      value={eventoParaEditar.linkIngresso || ''}
+                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, linkIngresso: e.target.value })}
+                      className="p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-3">
+                <button
+                  onClick={() => setEventoParaEditar(null)}
+                  className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSalvarEdicaoEvento}
+                  disabled={salvandoEdicao}
+                  className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-purple-500/10"
+                >
+                  {salvandoEdicao && <Loader2 size={16} className="animate-spin" />}
+                  Salvar e Aprovar
                 </button>
               </div>
             </motion.div>
@@ -824,6 +1260,39 @@ export default function GeminiChat() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Sub-componente: Rodapé Fixo de Acompanhamento no Mobile e Desktop */}
+      <ColetaStatusFooter
+        coletaEmAndamento={coletaEmAndamento}
+        tempoDecorridoSegundos={tempoDecorridoSegundos}
+        formatarRelogio={formatarRelogio}
+        resumo={resumoColeta}
+        onOpenResumoModal={() => setResumoModalAberto(true)}
+        onAprovarTodos={solicitarAprovarTodos}
+        aprovandoLote={aprovandoLote}
+      />
+
+      {/* Sub-componente: Modal de Mini-Resumo da Coleta */}
+      <MiniResumoModal
+        isOpen={resumoModalAberto}
+        onClose={() => setResumoModalAberto(false)}
+        resumo={resumoColeta}
+        onAprovarTodos={solicitarAprovarTodos}
+        aprovandoLote={aprovandoLote}
+      />
+
+      {/* Sub-componente: Modal Customizado de Confirmação da UI */}
+      <ConfirmModal
+        isOpen={confirmAprovarTodosAberto}
+        onClose={() => setConfirmAprovarTodosAberto(false)}
+        onConfirm={handleAprovarTodosConfirmado}
+        title="Aprovar Todos os Eventos"
+        description={`Tem certeza de que deseja aprovar e publicar TODOS os ${resumoColeta?.totalEncontrados || ''} eventos pendentes na base ativa do aplicativo?`}
+        confirmText="Sim, Aprovar Todos"
+        cancelText="Cancelar"
+        loading={aprovandoLote}
+        variant="emerald"
+      />
     </div>
   );
 }

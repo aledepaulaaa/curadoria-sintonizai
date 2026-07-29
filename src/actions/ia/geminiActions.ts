@@ -2,26 +2,42 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { handleActionError, createSuccessResponse, type ActionResponse } from '@/src/utils/errorHandlers';
-import { adminDb } from '@/src/services/firebaseAdmin';
+import { query } from '@/src/services/db';
+import { verificarDuplicado } from '@/src/actions/eventos/eventosActions';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 /**
- * Ferramentas que a IA pode chamar
+ * Ferramentas que a IA de Curadoria pode chamar
  */
 const tools = [
   {
     functionDeclarations: [
       {
+        name: 'disparar_coleta_agent',
+        description: 'Dispara a coleta/raspagem automática de eventos para o Agent Sintonizai buscando por região, cidade, palavra-chave ou URL no Brasil.',
+        parameters: {
+          type: 'object',
+          properties: {
+            fonte: { type: 'string', enum: ['instagram', 'sympla'], description: 'Origem da raspagem (padrão: sympla)' },
+            cidade: { type: 'string', description: 'Cidade ou estado do Brasil (ex: Porto Alegre, Salvador, Rio de Janeiro)' },
+            query: { type: 'string', description: 'Termo de busca, categoria ou tipo de evento (ex: teatro, show, musica)' },
+            limite: { type: 'number', description: 'Quantidade de eventos desejados por região (padrão: 10)' },
+            targetUrl: { type: 'string', description: 'URL direta de perfil/evento se fornecida (opcional)' }
+          },
+          required: ['fonte']
+        }
+      },
+      {
         name: 'buscar_eventos',
-        description: 'Busca eventos no banco de dados com filtros opcionais.',
+        description: 'Busca eventos no banco de dados PostgreSQL com filtros opcionais.',
         parameters: {
           type: 'object',
           properties: {
             query: { type: 'string', description: 'Termo de busca no nome ou descrição' },
             tipo_evento: { type: 'string' },
             categoria: { type: 'string' },
-            status: { type: 'string', enum: ['pendente', 'aprovado', 'arquivado'] }
+            status: { type: 'string', enum: ['pendente', 'aprovado', 'rejeitado'] }
           }
         }
       },
@@ -41,7 +57,7 @@ const tools = [
       },
       {
         name: 'salvar_evento_no_firestore',
-        description: 'Salva um ou mais eventos novos no banco de dados.',
+        description: 'Salva um ou mais eventos novos no banco de dados PostgreSQL.',
         parameters: {
           type: 'object',
           properties: {
@@ -56,17 +72,18 @@ const tools = [
                   horario: { type: 'string' },
                   local: { type: 'object', properties: { nome: { type: 'string' }, lat: { type: 'number' }, lng: { type: 'number' } } },
                   endereco: { type: 'string' },
-                  tipo_evento: { type: 'string', description: 'Tipo principal (legado)' },
-                  categoria: { type: 'string', description: 'Categoria principal (legado)' },
-                  estilo: { type: 'string', description: 'Estilo/vibe principal (legado)' },
-                  categorias: { type: 'array', items: { type: 'string' }, description: 'Lista de categorias do evento (múltiplas permitidas)' },
-                  tiposEvento: { type: 'array', items: { type: 'string' }, description: 'Lista de tipos do evento (múltiplos permitidos)' },
-                  vibracoes: { type: 'array', items: { type: 'string' }, description: 'Lista de estilos/vibrações do evento (múltiplos permitidos)' },
+                  cidade: { type: 'string', description: 'Cidade/Região do Brasil' },
+                  tipo_evento: { type: 'string' },
+                  categoria: { type: 'string' },
+                  estilo: { type: 'string' },
+                  categorias: { type: 'array', items: { type: 'string' } },
+                  tiposEvento: { type: 'array', items: { type: 'string' } },
+                  vibracoes: { type: 'array', items: { type: 'string' } },
                   gratuito: { type: 'boolean' },
                   preco: { type: 'string' },
                   linkIngresso: { type: 'string' },
-                  notaCuradoria: { type: 'string', description: 'Nota ou aviso importante da curadoria para o público (máx 100 caracteres)' },
-                  acessibilidade: { type: 'boolean', description: 'Se o evento possui acessibilidade para pessoas com deficiência' }
+                  notaCuradoria: { type: 'string' },
+                  acessibilidade: { type: 'boolean' }
                 },
                 required: ['nome', 'dataInicio', 'local', 'categorias', 'tiposEvento']
               }
@@ -99,98 +116,70 @@ export async function chatComGemini(
       throw new Error('GEMINI_API_KEY não configurada');
     }
 
-    // Buscar Metadados Atuais (Todas as Taxonomias agora são agrupadas)
-    const [catSnap, estSnap, tipSnap] = await Promise.all([
-      adminDb.collection('configuracoes_categorias').orderBy('ordem', 'asc').get(),
-      adminDb.collection('configuracoes_estilos').orderBy('ordem', 'asc').get(),
-      adminDb.collection('configuracoes_tipo_evento').orderBy('ordem', 'asc').get()
-    ]);
+    const lastUserMessage = mensagens[mensagens.length - 1]?.parts[0]?.text || '';
 
-    const formatarGrupo = (doc: any) => {
-      const data = doc.data();
-      return `- [Grupo: ${data.label}]: ${(data.itens || []).join(', ')}`;
-    };
+    // Detecção direta de URLs para acionamento rápido do Agent Sintonizai
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = lastUserMessage.match(urlRegex);
+    if (urls && urls.length > 0) {
+      const targetUrl = urls[0];
+      if (targetUrl.includes('instagram.com') || targetUrl.includes('sympla.com')) {
+        const source = targetUrl.includes('sympla.com') ? 'sympla' : 'instagram';
+        const agentUrl = process.env.AGENT_API_URL || 'http://localhost:3005';
+        const agentApiKey = process.env.AGENT_API_KEY || 'sintonizai_secret_api_key_2026';
 
-    let categoriasTexto = catSnap.docs.map(formatarGrupo).join('\n');
-    let estilosTexto = estSnap.docs.map(formatarGrupo).join('\n');
-    let tiposTexto = tipSnap.docs.map(formatarGrupo).join('\n');
+        console.log(`[Agent Trigger] Disparando scraping para ${source}: ${targetUrl} via ${agentUrl}`);
 
-    // Lista plana para validação rápida pela IA
-    const todosItens = [
-      ...catSnap.docs.flatMap(d => d.data().itens || []),
-      ...estSnap.docs.flatMap(d => d.data().itens || []),
-      ...tipSnap.docs.flatMap(d => d.data().itens || [])
-    ];
+        try {
+          const res = await fetch(`${agentUrl}/api/v1/agent/trigger`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-KEY': agentApiKey,
+            },
+            body: JSON.stringify({
+              source,
+              targetUrl,
+              priority: 'low',
+            }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const textResponse = `🤖 **[Assistente de Curadoria]** Recebido! O processamento do link foi iniciado em segundo plano.
+
+*   **URL:** ${targetUrl}
+*   **Fila:** scraping-jobs (RabbitMQ)
+*   **Job ID:** \`${data.jobId}\`
+
+A coleta está rodando na fila em nuvem. Quando finalizar, os eventos estruturados pela IA aparecerão abaixo e na central de notificações formatados em estilo amigável de compartilhamento para sua revisão.`;
+
+            return createSuccessResponse(textResponse, { jobEnfileirado: true, jobId: data.jobId } as any);
+          }
+        } catch (err: any) {
+          console.error('[Agent Trigger Error]:', err);
+        }
+      }
+    }
 
     const instruction = `
-Você é o Copiloto de Curadoria do app Sintonizaí. Sua missão é ser um assistente técnico preciso, objetivo e eficiente para o curador humano.
+Você é o Copiloto de Curadoria inteligente e autônomo do app Sintonizaí. Sua missão é dialogar com o curador humano, entender suas solicitações de eventos culturais pelo Brasil e acionar as raspagens automatizadas do Agent Sintonizai.
 
-COMPORTAMENTO GERAL (CRÍTICO):
-1. SEJA CONCISO: Responda com o mínimo de palavras necessário. Use bullet points. Não seja excessivamente cerimonioso.
-2. PERGUNTE PRIMEIRO: Se o usuário enviar um bloco de JSON ou lista de eventos sem instrução clara, pergunte imediatamente: "O que deseja fazer com este bloco?" (Opções: Salvar, Validar, Buscar Duplicados).
-3. OBJETIVIDADE: Se o usuário pedir algo vago, faça perguntas curtas e diretas para clarificar.
-4. FEEDBACK DE FERRAMENTAS: Sempre que usar uma ferramenta, informe o resultado exato (ex: "X eventos salvos, Y duplicados ignorados"). Nunca diga que salvou se a ferramenta retornar erro.
-
-REGRAS DE VALIDAÇÃO:
-1. DATAS: DD/MM/AAAA (exibição), YYYY-MM-DD (salvamento). Valide se é futura.
-2. HORÁRIOS: HH:MM ou "Confirmar no link". NUNCA ADIVINHE OU ESTIME. Se houver dúvida, mantenha "Confirmar no link".
-3. DUPLICIDADE: A ferramenta 'salvar_evento_no_firestore' JÁ CHECA DUPLICATAS AUTOMATICAMENTE. Não é necessário usar 'buscar_eventos' antes de salvar novos eventos, a menos que o usuário peça explicitamente para verificar antes.
-4. TAXONOMIA: Siga estritamente Categoria > Tipo > Estilo conforme as listas fornecidas.
-5. ACESSIBILIDADE: Tente identificar se o evento é acessível (PCD). Se houver menção a "acessibilidade", "PCD", "rampas", "elevadores", defina como true.
-6. CAPACIDADE MASSIVA: Você pode processar lotes de até 350 eventos por vez. Para lotes maiores, divida o processamento e informe o progresso (ex: "Processando 1-50 de 350...").
-7. FORMATOS FLEXÍVEIS: Se receber múltiplos blocos JSON soltos (mesmo sem estar dentro de um array []), interprete-os como um lote de eventos e use 'salvar_evento_no_firestore' para processá-los todos de uma vez.
-
-NOTA DA CURADORIA (notaCuradoria):
-- Máximo 100 caracteres.
-- Use para avisos vitais (troca de local, link externo, etc).
-- SEMPRE pergunte se o curador quer adicionar uma nota antes de salvar lotes.
-
-ESTRUTURA JSON ESPERADA (Exemplo):
-{
-  "nome": "Nome do Evento",
-  "descricao": "Texto descritivo",
-  "dataInicio": "YYYY-MM-DD",
-  "horario": "HH:MM",
-  "local": { "nome": "Nome do Local", "lat": -23.55, "lng": -46.63 },
-  "categorias": ["Música"],
-  "tiposEvento": ["Show"],
-  "vibracoes": ["Rock"],
-  "categoria": "Música",
-  "tipo_evento": "Show",
-  "estilo": "Rock",
-  "gratuito": true,
-  "preco": "R$ 50,00",
-  "linkIngresso": "https://...",
-  "notaCuradoria": "Aviso importante aqui",
-  "acessibilidade": true
-}
-
-CAPACIDADES ESPECIAIS:
-1. BUSCA: Pesquise eventos existentes usando 'buscar_eventos'.
-2. AJUSTE MASSIVO: Para alterações em lote, use 'propor_ajuste_massivo'. Você deve orientar o curador sobre como organizar melhor os dados existentes baseando-se na nova taxonomia.
-3. EXTRAÇÃO: Use 'extrair_info_url' para processar links externos.
-
-VALORES VÁLIDOS (Use EXATAMENTE estes nomes de itens):
-CATEGORIAS:
-${categoriasTexto}
-
-ESTILOS/RITMOS:
-${estilosTexto}
-
-TIPOS DE EVENTOS:
-${tiposTexto}
-
-FLUXO DE TRABALHO:
-- Para ajustes massivos: 1. Busque os eventos -> 2. Proponha a alteração -> 3. Aguarde confirmação (exiba status "Trabalhando...").
-- Para novos eventos: 1. Valide dados -> 2. Cheque duplicidade -> 3. Salve.
+REGRAS DE OURO DE COMPORTAMENTO E FEEDBACK:
+1. BUSCA AUTÔNOMA INTELIGENTE: Quando a pessoa usuária solicitar eventos para qualquer cidade, estado ou tema no Brasil (ex: "5 eventos de música em São Paulo e 5 em Belo Horizonte"), você DEVE chamar a ferramenta "disparar_coleta_agent" para cada cidade/região solicitada. Você NÃO precisa de links manuais para fazer a busca.
+2. CONFIRMAÇÃO DE SUCESSO DA FERRAMENTA:
+   - Quando a ferramenta "disparar_coleta_agent" retornar { success: true }, NUNCA diga que houve erro técnico e NUNCA peça para fornecer links ou URLs.
+   - Responda confirmando com clareza e entusiasmo que a solicitação foi enfileirada e que a busca automatizada já iniciou em segundo plano para cada uma das cidades/categorias.
+   - Avise a equipe de curadoria que em instantes os cartões dos eventos coletados aparecerão na tela no formato de compartilhamento para revisão, edição ou aprovação.
+3. LINGUAGEM INCLUSIVA E ABRANGENTE: Use sempre linguagem profissional, acolhedora e neutra quanto ao gênero (evite expressões como "fique tranquilo" ou "seja bem-vindo". Prefira "tudo pronto", "acompanhe com tranquilidade", "boas-vindas", "ótimo trabalho").
 `;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3.1-flash-lite',
       systemInstruction: instruction,
       tools: tools as any,
       generationConfig: {
-        temperature: 0.1,
+        temperature: 0.2,
         topP: 0.95,
         maxOutputTokens: 8192,
       }
@@ -200,12 +189,11 @@ FLUXO DE TRABALHO:
       history: mensagens.slice(0, -1),
     });
 
-    let lastMessageParts: any[] = [{ text: mensagens[mensagens.length - 1].parts[0].text }];
+    let lastMessageParts: any[] = [{ text: lastUserMessage }];
     if (imagem) {
       lastMessageParts.push({ inlineData: { data: imagem.data, mimeType: imagem.mimeType } });
     }
 
-    console.log(`[Gemini Request] Enviando solicitação...`);
     const result = await chat.sendMessage(lastMessageParts);
     const response = await result.response;
     const calls = response.candidates?.[0]?.content?.parts?.filter(p => p.functionCall);
@@ -218,38 +206,108 @@ FLUXO DE TRABALHO:
         const { name, args } = call.functionCall as any;
         console.log(`[Tool Call] Executando: ${name}`, args);
 
-        if (name === 'buscar_eventos') {
-          const { query, tipo_evento, categoria, status } = args;
-          let ref: any = adminDb.collection('eventos');
+        if (name === 'disparar_coleta_agent') {
+          const { fonte, cidade, query: queryParam, limite, targetUrl } = args;
+          const agentUrl = process.env.AGENT_API_URL || 'http://localhost:3005';
+          const agentApiKey = process.env.AGENT_API_KEY || 'sintonizai_secret_api_key_2026';
 
-          if (query) {
-            // Firestore doesn't support full text search well here, 
-            // but we can at least filter by other fields if provided.
+          try {
+            const jobIds: string[] = [];
+            const cidadeClean = (cidade || 'sp').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+
+            // 1. Disparar raspagem no Sympla
+            const resSympla = await fetch(`${agentUrl}/api/v1/agent/trigger`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-API-KEY': agentApiKey,
+              },
+              body: JSON.stringify({
+                source: 'sympla',
+                targetUrl: targetUrl && targetUrl.includes('sympla') ? targetUrl : undefined,
+                cidade,
+                query: queryParam,
+                limite: limite || 5,
+                priority: 'low',
+              }),
+            });
+            if (resSympla.ok) {
+              const dS = await resSympla.json();
+              jobIds.push(dS.jobId);
+            }
+
+            // 2. Disparar raspagem no Instagram (Fonte Primária Paralela)
+            const resInsta = await fetch(`${agentUrl}/api/v1/agent/trigger`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-API-KEY': agentApiKey,
+              },
+              body: JSON.stringify({
+                source: 'instagram',
+                targetUrl: targetUrl && targetUrl.includes('instagram') ? targetUrl : `https://www.instagram.com/explore/tags/eventos${cidadeClean}/`,
+                cidade,
+                query: queryParam,
+                limite: limite || 5,
+                priority: 'low',
+              }),
+            });
+            if (resInsta.ok) {
+              const dI = await resInsta.json();
+              jobIds.push(dI.jobId);
+            }
+
+            results.push({
+              name,
+              response: {
+                success: true,
+                jobIds,
+                message: `Coletas enfileiradas nas fontes primárias (Sympla e Instagram) para ${cidade || 'Brasil'} (Termo: ${queryParam || 'Geral'}). Jobs: ${jobIds.join(', ')}`
+              }
+            });
+          } catch (err: any) {
+            results.push({ name, response: { success: false, error: err.message } });
           }
+        }
 
-          if (tipo_evento) ref = ref.where('tipo_evento', '==', tipo_evento);
-          if (categoria) ref = ref.where('categoria', '==', categoria);
-          if (status) ref = ref.where('status', '==', status);
+        if (name === 'buscar_eventos') {
+          const { query: queryStr, tipo_evento, categoria, status } = args;
+          let sql = 'SELECT id, nome, tipo_evento, categoria, cidade FROM events WHERE 1=1';
+          const params: any[] = [];
+          let index = 1;
 
-          const snap = await ref.limit(50).get();
-          const eventos = snap.docs.map((d: any) => ({
-            id: d.id,
-            nome: d.data().nome,
-            tipo_evento: d.data().tipo_evento,
-            categoria: d.data().categoria
-          }));
+          if (tipo_evento) {
+            sql += ` AND tipo_evento = $${index++}`;
+            params.push(tipo_evento);
+          }
+          if (categoria) {
+            sql += ` AND categoria::text = $${index++}`;
+            params.push(categoria);
+          }
+          if (status) {
+            sql += ` AND status::text = $${index++}`;
+            params.push(status);
+          }
+          if (queryStr) {
+            sql += ` AND (nome ILIKE $${index} OR descricao ILIKE $${index})`;
+            params.push(`%${queryStr}%`);
+            index++;
+          }
+          sql += ' LIMIT 50';
 
-          results.push({ name, response: { success: true, count: eventos.length, eventos } });
+          const snap = await query(sql, params);
+          results.push({ name, response: { success: true, count: snap.rows.length, eventos: snap.rows } });
         }
 
         if (name === 'propor_ajuste_massivo') {
           const { ids, campo, novoValor, justificativa } = args;
-          // Buscar dados atuais para a prévia
-          const snap = await adminDb.collection('eventos').where('__name__', 'in', ids).get();
-          const preview = snap.docs.map(d => ({
-            id: d.id,
-            nome: d.data().nome,
-            antigo: d.data()[campo],
+          const sql = `SELECT id, nome, "${campo}" as antigo FROM events WHERE id = ANY($1)`;
+          const snap = await query(sql, [ids]);
+
+          const preview = snap.rows.map(r => ({
+            id: r.id,
+            nome: r.nome,
+            antigo: r.antigo,
             novo: novoValor
           }));
 
@@ -259,51 +317,36 @@ FLUXO DE TRABALHO:
 
         if (name === 'salvar_evento_no_firestore') {
           const { eventos } = args;
-          const colRef = adminDb.collection('eventos');
           let adicionados = 0;
           let duplicados = 0;
 
-          // Processamento sequencial para checar duplicidade robusta
+          const { criarEvento } = await import('@/src/actions/eventos/eventosActions');
+
           for (const ev of eventos) {
-            // Busca básica por nome para filtrar no cliente (mais resiliente a falta de índices compostos)
-            const querySnap = await colRef
-              .where('nome', '==', ev.nome)
-              .get();
-
-            const diaNovo = ev.dataInicio?.split('T')[0];
-
-            const jaExiste = querySnap.docs.some(doc => {
-              const d = doc.data();
-              const dataMatch = d.dataInicio?.split('T')[0] === diaNovo;
-              const horarioMatch = d.horario === ev.horario;
-
-              // Comparar usando campos novos ou antigos para resiliência de duplicidade
-              const dCat = d.categoria || (d.categorias && d.categorias[0]) || '';
-              const evCat = ev.categoria || (ev.categorias && ev.categorias[0]) || '';
-              const categoriaMatch = dCat === evCat;
-
-              const dTipo = d.tipo_evento || (d.tiposEvento && d.tiposEvento[0]) || '';
-              const evTipo = ev.tipo_evento || (ev.tiposEvento && ev.tiposEvento[0]) || '';
-              const tipoMatch = dTipo === evTipo;
-
-              return dataMatch && horarioMatch && categoriaMatch && tipoMatch;
-            });
+            const jaExiste = await verificarDuplicado(
+              ev.nome,
+              ev.dataInicio,
+              ev.horario || '',
+              ev.categoria,
+              ev.tipo_evento,
+              ev.estilo
+            );
 
             if (!jaExiste) {
               const categoriasArray = Array.isArray(ev.categorias) ? ev.categorias : (ev.categoria ? [ev.categoria] : []);
               const tiposArray = Array.isArray(ev.tiposEvento) ? ev.tiposEvento : (ev.tipo_evento ? [ev.tipo_evento] : []);
               const vibracoesArray = Array.isArray(ev.vibracoes) ? ev.vibracoes : (ev.estilo ? ev.estilo.split(',').map((s: any) => s.trim()).filter(Boolean) : []);
 
-              await colRef.add({
+              await criarEvento({
                 ...ev,
+                cidade: ev.cidade || 'São Paulo',
                 categoria: categoriasArray[0] || 'todos',
-                tipo_evento: tiposArray[0] || 'Outros',
+                tipo_evento: tiposArray[0] || 'todos',
                 estilo: vibracoesArray.join(', '),
                 categorias: categoriasArray,
                 tiposEvento: tiposArray,
                 vibracoes: vibracoesArray,
                 status: 'pendente',
-                criadoEm: new Date().toISOString(),
                 origem: 'IA_ASSISTANT'
               });
               adicionados++;
@@ -333,7 +376,6 @@ FLUXO DE TRABALHO:
               const regex = new RegExp(`<meta[^>]+(?:property|name)="${tag}"[^>]+content="([^"]+)"`, 'i');
               const match = html.match(regex);
               if (match) return match[1];
-              // Tentar o outro formato (content antes do property)
               const regexAlt = new RegExp(`<meta[^>]+content="([^"]+)"[^>]+(?:property|name)="${tag}"`, 'i');
               const matchAlt = html.match(regexAlt);
               return matchAlt ? matchAlt[1] : null;

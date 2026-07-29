@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { db } from '../services/firebaseClient';
-import { collection, query, where, onSnapshot, orderBy, writeBatch, doc } from 'firebase/firestore';
+import { collection, query as fsQuery, where, onSnapshot, orderBy, writeBatch, doc } from 'firebase/firestore';
+import { listarEventosPendentes } from '@/src/actions/eventos/eventosActions';
+import type { Evento } from '../types/evento';
 
 export interface Indicacao {
   id: string;
@@ -33,80 +35,107 @@ export interface Feedback {
 interface NotificationState {
   indicacoes: Indicacao[];
   feedbacks: Feedback[];
+  eventosPendentes: Evento[];
   naoLidas: number;
   loading: boolean;
   iniciarListener: () => () => void;
+  carregarEventosPendentes: () => Promise<void>;
   marcarTodasComoLidas: () => Promise<void>;
 }
 
-export const useNotificationStore = create<NotificationState>((set, get) => ({
-  indicacoes: [],
-  feedbacks: [],
-  naoLidas: 0,
-  loading: true,
+export const useNotificationStore = create<NotificationState>((set, get) => {
+  let intervalId: any = null;
 
-  iniciarListener: () => {
-    // Listener Indicações
-    const qInd = query(
-      collection(db, 'indicacoes'),
-      where('status', '==', 'pendente'),
-      orderBy('criadoEm', 'desc')
-    );
+  return {
+    indicacoes: [],
+    feedbacks: [],
+    eventosPendentes: [],
+    naoLidas: 0,
+    loading: true,
 
-    // Listener Feedbacks
-    const qFeed = query(
-      collection(db, 'feedbacks'),
-      where('status', '==', 'pendente'),
-      orderBy('timestamp', 'desc')
-    );
+    carregarEventosPendentes: async () => {
+      try {
+        const eventos = await listarEventosPendentes();
+        set({
+          eventosPendentes: eventos,
+          naoLidas: get().indicacoes.length + get().feedbacks.length + eventos.length,
+        });
+      } catch (err) {
+        console.error('Erro ao carregar eventos pendentes no store:', err);
+      }
+    },
 
-    const unsubFeed = onSnapshot(qFeed, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Feedback[];
-      set({
-        feedbacks: docs,
-        naoLidas: get().indicacoes.length + docs.length,
-        loading: false
-      });
-    });
+    iniciarListener: () => {
+      // Listener Indicações Firebase
+      const qInd = fsQuery(
+        collection(db, 'indicacoes'),
+        where('status', '==', 'pendente'),
+        orderBy('criadoEm', 'desc')
+      );
 
-    const unsubInd = onSnapshot(qInd, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Indicacao[];
-      set({
-        indicacoes: docs,
-        naoLidas: docs.length + get().feedbacks.length,
-        loading: false
-      });
-    });
+      // Listener Feedbacks Firebase
+      const qFeed = fsQuery(
+        collection(db, 'feedbacks'),
+        where('status', '==', 'pendente'),
+        orderBy('timestamp', 'desc')
+      );
 
-    return () => {
-      unsubInd();
-      if (unsubFeed) unsubFeed();
-    };
-  },
-
-  marcarTodasComoLidas: async () => {
-    const { indicacoes, feedbacks } = get();
-    try {
-      const batch = writeBatch(db);
-
-      indicacoes.forEach(ind => {
-        batch.update(doc(db, 'indicacoes', ind.id), { status: 'visualizado' });
+      const unsubFeed = onSnapshot(qFeed, (snapshot) => {
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Feedback[];
+        set({
+          feedbacks: docs,
+          naoLidas: get().indicacoes.length + docs.length + get().eventosPendentes.length,
+          loading: false
+        });
       });
 
-      feedbacks.forEach(fb => {
-        batch.update(doc(db, 'feedbacks', fb.id), { status: 'analisado' });
+      const unsubInd = onSnapshot(qInd, (snapshot) => {
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Indicacao[];
+        set({
+          indicacoes: docs,
+          naoLidas: docs.length + get().feedbacks.length + get().eventosPendentes.length,
+          loading: false
+        });
       });
 
-      await batch.commit();
+      // Carrega os eventos pendentes do PostgreSQL imediatamente
+      get().carregarEventosPendentes();
 
-      // Update local state immediately for better UX
-      set({
-        indicacoes: [],
-        feedbacks: [],
-        naoLidas: 0
-      });
-    } catch (e) {
-      console.error('Erro ao marcar notificações como lidas:', e);
+      // Configura polling a cada 8 segundos para atualizar os eventos do Postgres coletados pelo Agent em background
+      intervalId = setInterval(() => {
+        get().carregarEventosPendentes();
+      }, 8000);
+
+      return () => {
+        unsubInd();
+        if (unsubFeed) unsubFeed();
+        if (intervalId) clearInterval(intervalId);
+      };
+    },
+
+    marcarTodasComoLidas: async () => {
+      const { indicacoes, feedbacks } = get();
+      try {
+        const batch = writeBatch(db);
+
+        indicacoes.forEach(ind => {
+          batch.update(doc(db, 'indicacoes', ind.id), { status: 'visualizado' });
+        });
+
+        feedbacks.forEach(fb => {
+          batch.update(doc(db, 'feedbacks', fb.id), { status: 'analisado' });
+        });
+
+        await batch.commit();
+
+        set({
+          indicacoes: [],
+          feedbacks: [],
+          naoLidas: get().eventosPendentes.length
+        });
+      } catch (e) {
+        console.error('Erro ao marcar notificações como lidas:', e);
+      }
     }
-  }
-}));
+  };
+});
